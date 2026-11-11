@@ -23,8 +23,9 @@ import { formatEuro } from '../../billing/money';
 import { IPositionItem, IRechnung } from '../../data/mapping';
 import { useApp } from '../AppContext';
 import { errorText, useData } from '../DataContext';
-import { BadgeColor, isGekuendigt, laufzeitText, preisText } from '../derive';
+import { isGekuendigt, laufzeitText, preisText, RECHNUNG_STATUS } from '../derive';
 import { ConfirmDialog, IConfirmRequest } from '../components/ConfirmDialog';
+import { InvoiceActions } from '../components/InvoiceActions';
 import { KuendigenDialog } from '../components/KuendigenDialog';
 import { KundeDrawer } from '../components/KundeDrawer';
 import { PositionDrawer } from '../components/PositionDrawer';
@@ -38,14 +39,13 @@ const useStyles = makeStyles({
   badge: { marginLeft: '6px' }
 });
 
-export const RECHNUNG_STATUS: { [k in IRechnung['status']]: BadgeColor } = { Entwurf: 'brand', Erstellt: 'success', Storniert: 'informative' };
-
 export interface ICustomerDetailProps {
   kundeId: number;
   onFolgerechnung: () => void;
+  onEditDraft: (rechnung: IRechnung) => void;
 }
 
-export function CustomerDetail({ kundeId, onFolgerechnung }: ICustomerDetailProps): React.ReactElement {
+export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft }: ICustomerDetailProps): React.ReactElement {
   const s = useStyles();
   const shared = useShared();
   const { repo } = useApp();
@@ -188,8 +188,6 @@ export function CustomerDetail({ kundeId, onFolgerechnung }: ICustomerDetailProp
         </div>
       </section>
 
-      {proposals.length > 0 && <Timeline proposals={proposals} lines={lines} today={today} />}
-
       <section className={shared.card} aria-labelledby="hist-title">
         <div className={shared.cardHeader}>
           <h2 id="hist-title" className={shared.h2}>
@@ -229,12 +227,13 @@ export function CustomerDetail({ kundeId, onFolgerechnung }: ICustomerDetailProp
                     <TableCell>
                       <StatusBadge color={RECHNUNG_STATUS[r.status]} text={r.status} />
                     </TableCell>
-                    <TableCell style={{ textAlign: 'right' }}>
+                    <TableCell style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                       {r.pdfUrl && (
                         <Link href={r.pdfUrl} target="_blank" rel="noreferrer">
                           PDF öffnen
                         </Link>
                       )}
+                      <InvoiceActions rechnung={r} onEditDraft={onEditDraft} />
                     </TableCell>
                   </TableRow>
                 );
@@ -243,6 +242,9 @@ export function CustomerDetail({ kundeId, onFolgerechnung }: ICustomerDetailProp
           </Table>
         </div>
       </section>
+
+      {/* Zeitstrahl nur, wenn es verrechnete Zeiträume gibt */}
+      {lines.some((l) => l.status === 'Entwurf' || l.status === 'Erstellt') && <Timeline proposals={proposals} lines={lines} today={today} />}
 
       <KundeDrawer open={kundeDrawer} kunde={kunde} onClose={() => setKundeDrawer(false)} />
       <PositionDrawer open={positionDrawer.open} kunde={kunde} position={positionDrawer.position} onClose={() => setPositionDrawer({ open: false })} />

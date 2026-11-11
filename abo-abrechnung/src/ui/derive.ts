@@ -7,6 +7,8 @@ import { IKunde, IPositionItem, IRechnung } from '../data/mapping';
 
 export type BadgeColor = 'warning' | 'danger' | 'success' | 'informative' | 'brand';
 
+export const RECHNUNG_STATUS: { [k in IRechnung['status']]: BadgeColor } = { Entwurf: 'brand', Erstellt: 'success', Storniert: 'informative' };
+
 export interface IStatusBadge {
   color: BadgeColor;
   text: string;

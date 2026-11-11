@@ -126,6 +126,25 @@ export class Repository {
     return { ...rechnung, id: rechnungId, pdfUrl: null };
   }
 
+  /**
+   * Überschreibt einen Entwurf: Kopf aktualisieren, alte Positionen löschen, neue anlegen.
+   * Nur für Status Entwurf (wird frisch geprüft).
+   */
+  public async updateEntwurf(
+    id: number,
+    rechnung: Omit<IRechnung, 'id' | 'pdfUrl'>,
+    lines: Omit<IRechnungsposition, 'id' | 'rechnungId'>[]
+  ): Promise<IRechnung> {
+    const item: SPItem = await this.list(LIST.Rechnungen).items.getById(id).select('Status')();
+    if (item.Status !== 'Entwurf') throw new Error('Nur Entwürfe können bearbeitet werden.');
+    const old = await readAll(this.list(LIST.Rechnungspositionen), ['Id'], `RechnungId eq ${id}`);
+    for (const l of old) await this.list(LIST.Rechnungspositionen).items.getById(l.Id).delete();
+    for (const line of lines) await this.list(LIST.Rechnungspositionen).items.add(rechnungspositionToItem({ ...line, rechnungId: id }));
+    // Status zuletzt setzen: schlägt vorher etwas fehl, bleibt es ein Entwurf
+    await this.list(LIST.Rechnungen).items.getById(id).update(rechnungToItem(rechnung));
+    return { ...rechnung, id, pdfUrl: null };
+  }
+
   private async rollback(rechnungId: number, lineIds: number[]): Promise<void> {
     for (const id of lineIds) {
       try {

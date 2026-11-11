@@ -63,7 +63,7 @@ export function nextStart(position: IPosition, lines: IBilledLine[]): ISODate {
 }
 
 /** Erster verrechneter Tag; Anker des Monatsrasters, damit Monatsenden nicht wandern. */
-function firstBilled(positionId: number, lines: IBilledLine[]): ISODate | null {
+export function firstBilled(positionId: number, lines: IBilledLine[]): ISODate | null {
   let min: ISODate | null = null;
   for (const l of activeLines(positionId, lines)) if (min === null || (l.von as string) < min) min = l.von;
   return min;

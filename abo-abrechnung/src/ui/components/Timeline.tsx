@@ -188,9 +188,6 @@ export function Timeline({ proposals, lines, today }: ITimelineProps): React.Rea
               </div>
             );
           })}
-          {rows.every((r) => r.bars.length === 0) && (
-            <span className={shared.muted}>Noch keine verrechneten Zeiträume – sie erscheinen nach der ersten Rechnung dunkelblau über dem Vertrag.</span>
-          )}
         </div>
       </div>
     </section>

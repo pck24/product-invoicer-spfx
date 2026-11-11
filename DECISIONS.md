@@ -77,6 +77,29 @@ Das Modell ist bewusst einfach: **Jede Position hat einen Jahrespreis und eigene
 - **Kunden-Drawer:** Name, Kundennummer (Vorschlag `K-{NNNN}`), Adresse. Neue Kunden sind aktiv.
 - **Rechnungsnummer** kommt aus deinem externen Rechnungssystem und wird manuell eingegeben. Es gibt kein Muster und keinen Vorschlag.
 
+## Rechnungsdialog, Stornierung, Tab „Rechnungen“ (Phase 4)
+
+- **Kopf:** Rechnungsnummer (Pflicht, live eindeutig) und Rechnungsdatum (Standard heute). Ändert sich das Datum, wird die Vorauswahl der Folgezeiträume neu bestimmt. Häkchen, die du selbst gesetzt hast, bleiben dabei unverändert.
+- **Zeilen:** Es gibt eine Zeile pro Position, in dieser Reihenfolge:
+  1. fällig: angehakt und vorbefüllt
+  2. neu: leer; sobald Von und Bis gesetzt sind, wird die Zeile automatisch angehakt
+  3. nicht fällig: vorbefüllt, ohne Häkchen
+  4. entfällt: ausgegraut
+- **Bearbeiten:** Von und Bis lassen sich ändern, dann wird der Betrag neu berechnet. Der Betrag selbst ist überschreibbar und wird dann als „Betrag manuell“ markiert. Leert man das Feld, gilt wieder der berechnete Betrag.
+- **Einmalige Positionen:** Bezeichnung und Betrag sind Pflicht, der Zeitraum ist optional. Menge 1, Art `Einmalig`.
+- **Speichern** (Entwurf oder Erstellt):
+  - Rechnungen und Rechnungspositionen werden frisch gelesen und erneut geprüft. Bei Fehlern bricht das Speichern mit der Meldung „Daten haben sich geändert“ ab.
+  - Danach wird die Rechnung angelegt (mit Rollback) und `Vorgaenger` auf die letzte erstellte Rechnung des Kunden gesetzt.
+- **Entwurf bearbeiten** ist zusätzlich zum Plan möglich, sonst ließe sich ein Entwurf nie fertigstellen:
+  - Beim Speichern werden die Positionen ersetzt, und der Kopf mit dem Status wird zuletzt aktualisiert.
+  - Die eigenen Zeiträume und die eigene Nummer zählen nicht als Überschneidung.
+- **Stornieren** (nur `Erstellt`, mit Bestätigung) setzt den Status auf `Storniert`. Die Zeiträume sind danach wieder frei.
+- **Entwurf löschen** (mit Bestätigung) löscht Positionen und Rechnung.
+- **Erstellte Rechnungen** sind schreibgeschützt. Das Menü bietet für sie nur PDF und Stornieren.
+- **Tab „Rechnungen“:** alle Rechnungen mit Jahresfilter, Kundenlink, Status und demselben Aktionsmenü wie in der Rechnungshistorie.
+- **Zeitstrahl** im Kundendetail steht unter der Rechnungshistorie und erscheint erst, wenn es verrechnete Zeiträume gibt. Er zeigt die Vertragslaufzeit als hellblauen Balken, darüber die verrechneten Zeiträume dunkelblau und fällige Folgezeiträume gelb gestrichelt.
+- Die Spalte „Nächster Zeitraum“ in der Positionsliste ist auf deinen Wunsch entfallen.
+
 ## Toolchain
 
 - SPFx 1.24.1 (Heft), React 18.3, TypeScript 5.8, Node 22 (`.nvmrc`), PnPjs 4, Fluent UI 9 mit dem Site-Theme (`tryGetThemeV2`).

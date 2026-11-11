@@ -20,8 +20,10 @@ import { AppContext, IAppServices, useApp } from './AppContext';
 import { DataProvider, errorText, useData } from './DataContext';
 import { CustomerDetail } from './screens/CustomerDetail';
 import { CustomerList, HomeTab } from './screens/CustomerList';
+import { InvoiceWizard } from './screens/InvoiceWizard';
+import { Invoices } from './screens/Invoices';
+import { IRechnung } from '../data/mapping';
 import { Setup } from './screens/Setup';
-import { useShared } from './styles';
 
 const useStyles = makeStyles({
   root: {
@@ -42,7 +44,7 @@ const useStyles = makeStyles({
   skeleton: { display: 'flex', flexDirection: 'column', gap: '16px' }
 });
 
-export type Route = { name: 'home'; tab: HomeTab } | { name: 'kunde'; kundeId: number } | { name: 'rechnung'; kundeId: number };
+export type Route = { name: 'home'; tab: HomeTab } | { name: 'kunde'; kundeId: number } | { name: 'rechnung'; kundeId: number; rechnungId?: number };
 
 function LoadingSkeleton(): React.ReactElement {
   const s = useStyles();
@@ -57,7 +59,6 @@ function LoadingSkeleton(): React.ReactElement {
 
 function Screens(): React.ReactElement {
   const { data, loading, error } = useData();
-  const shared = useShared();
   const [route, setRoute] = React.useState<Route>({ name: 'home', tab: 'kunden' });
 
   if (error) {
@@ -71,6 +72,9 @@ function Screens(): React.ReactElement {
 
   const kunde = route.name !== 'home' ? data.kunden.filter((k) => k.id === route.kundeId)[0] : undefined;
   const home = (): void => setRoute({ name: 'home', tab: 'kunden' });
+  const editDraft = (r: IRechnung): void => {
+    if (r.kundeId) setRoute({ name: 'rechnung', kundeId: r.kundeId, rechnungId: r.id });
+  };
 
   return (
     <>
@@ -91,7 +95,7 @@ function Screens(): React.ReactElement {
             <>
               <BreadcrumbDivider />
               <BreadcrumbItem>
-                <BreadcrumbButton current>Folgerechnung</BreadcrumbButton>
+                <BreadcrumbButton current>{route.rechnungId ? 'Entwurf' : 'Rechnung'}</BreadcrumbButton>
               </BreadcrumbItem>
             </>
           )}
@@ -102,18 +106,20 @@ function Screens(): React.ReactElement {
           tab={route.tab}
           onTab={(tab) => setRoute({ name: 'home', tab })}
           onOpen={(kundeId) => setRoute({ name: 'kunde', kundeId })}
-          rechnungen={
-            <MessageBar intent="info">
-              <MessageBarBody>Die Rechnungsübersicht folgt in Phase 4.</MessageBarBody>
-            </MessageBar>
-          }
+          rechnungen={<Invoices onOpenKunde={(kundeId) => setRoute({ name: 'kunde', kundeId })} onEditDraft={editDraft} />}
         />
       )}
-      {route.name === 'kunde' && <CustomerDetail kundeId={route.kundeId} onFolgerechnung={() => setRoute({ name: 'rechnung', kundeId: route.kundeId })} />}
+      {route.name === 'kunde' && (
+        <CustomerDetail kundeId={route.kundeId} onFolgerechnung={() => setRoute({ name: 'rechnung', kundeId: route.kundeId })} onEditDraft={editDraft} />
+      )}
       {route.name === 'rechnung' && (
-        <MessageBar intent="info" className={shared.card}>
-          <MessageBarBody>Der Dialog „Folgerechnung erstellen“ folgt in Phase 4.</MessageBarBody>
-        </MessageBar>
+        <InvoiceWizard
+          key={`${route.kundeId}-${route.rechnungId || 'neu'}`}
+          kundeId={route.kundeId}
+          rechnungId={route.rechnungId}
+          onDone={() => setRoute({ name: 'kunde', kundeId: route.kundeId })}
+          onCancel={() => setRoute({ name: 'kunde', kundeId: route.kundeId })}
+        />
       )}
     </>
   );
