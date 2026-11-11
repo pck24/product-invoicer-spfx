@@ -34,8 +34,6 @@ import { useShared } from '../styles';
 import { useSummaries } from './CustomerList';
 
 const useStyles = makeStyles({
-  posTable: { minWidth: '980px' },
-  histTable: { minWidth: '720px' },
   title: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
   badge: { marginLeft: '6px' }
 });
@@ -121,12 +119,12 @@ export function CustomerDetail({ kundeId, onFolgerechnung }: ICustomerDetailProp
           <Switch label="Gekündigte anzeigen" checked={showEnded} onChange={(_, d) => setShowEnded(d.checked)} />
         </div>
         <div className={shared.tableWrap}>
-          <Table className={s.posTable} aria-label="Positionen">
+          <Table className={shared.table} aria-label="Positionen">
             <TableHeader>
               <TableRow>
                 <TableHeaderCell>Produkt</TableHeaderCell>
-                <TableHeaderCell className={shared.num}>Menge</TableHeaderCell>
-                <TableHeaderCell className={shared.num}>Jahrespreis</TableHeaderCell>
+                <TableHeaderCell className={mergeClasses(shared.num, shared.numHead)}>Menge</TableHeaderCell>
+                <TableHeaderCell className={mergeClasses(shared.num, shared.numHead)}>Jahrespreis</TableHeaderCell>
                 <TableHeaderCell>Laufzeit</TableHeaderCell>
                 <TableHeaderCell>Vertrag von – bis</TableHeaderCell>
                 <TableHeaderCell>Verrechnet bis</TableHeaderCell>
@@ -207,13 +205,13 @@ export function CustomerDetail({ kundeId, onFolgerechnung }: ICustomerDetailProp
           </h2>
         </div>
         <div className={shared.tableWrap}>
-          <Table className={s.histTable} aria-label="Rechnungshistorie">
+          <Table className={shared.table} aria-label="Rechnungshistorie">
             <TableHeader>
               <TableRow>
                 <TableHeaderCell>Nr.</TableHeaderCell>
                 <TableHeaderCell>Datum</TableHeaderCell>
                 <TableHeaderCell>Positionen</TableHeaderCell>
-                <TableHeaderCell className={shared.num}>Netto</TableHeaderCell>
+                <TableHeaderCell className={mergeClasses(shared.num, shared.numHead)}>Netto</TableHeaderCell>
                 <TableHeaderCell>Status</TableHeaderCell>
                 <TableHeaderCell aria-label="Dokument" />
               </TableRow>

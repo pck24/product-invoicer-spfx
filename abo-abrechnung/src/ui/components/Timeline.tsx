@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Tooltip, makeStyles, mergeClasses, shorthands, tokens } from '@fluentui/react-components';
-import { addDaysIso, diffDays, formatDate, maxIso, minIso } from '../../billing/dates';
+import { addDaysIso, addMonthsIso, diffDays, formatDate, maxIso, minIso } from '../../billing/dates';
 import { formatEuro } from '../../billing/money';
 import { IPositionProposal, isActiveLine } from '../../billing/proposal';
 import { IBilledLine, ISODate } from '../../billing/types';
@@ -10,9 +10,10 @@ const useStyles = makeStyles({
   legend: { display: 'flex', flexWrap: 'wrap', gap: '16px', color: tokens.colorNeutralForeground2, fontSize: '13px' },
   legendItem: { display: 'flex', alignItems: 'center', gap: '6px' },
   swatch: { width: '18px', height: '10px', borderRadius: '2px', boxSizing: 'border-box' },
-  body: { minWidth: '880px', padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: '10px' },
+  body: { padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: '10px', '@media (max-width: 640px)': { minWidth: '600px' } },
   row: { display: 'flex', gap: '16px', alignItems: 'center' },
-  label: { width: '220px', flex: 'none', fontWeight: tokens.fontWeightSemibold, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  contract: { position: 'absolute', top: '9px', height: '4px', borderRadius: '2px', backgroundColor: tokens.colorNeutralStroke1 },
+  label: { width: '180px', flex: 'none', fontWeight: tokens.fontWeightSemibold, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   years: { flex: 1, position: 'relative', height: '18px', color: tokens.colorNeutralForeground3, fontSize: '12px' },
   year: { position: 'absolute', top: 0, paddingLeft: '6px', ...shorthands.borderLeft('1px', 'solid', tokens.colorNeutralStroke2) },
   track: { flex: 1, position: 'relative', height: '22px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: '3px' },
@@ -72,7 +73,7 @@ export function Timeline({ proposals, lines, today }: ITimelineProps): React.Rea
 
   // Zeitraum: bis zu 5 Jahre, endend mit dem spätesten Datum
   let min: ISODate = today;
-  let max: ISODate = today;
+  let max: ISODate = addMonthsIso(today, 12); // immer etwas Zukunft zeigen
   for (const r of rows) {
     min = minIso(min, r.p.position.beginn);
     for (const b of r.bars) {
@@ -96,6 +97,10 @@ export function Timeline({ proposals, lines, today }: ITimelineProps): React.Rea
           Zeitleiste der verrechneten Zeiträume
         </h2>
         <div className={s.legend}>
+          <span className={s.legendItem}>
+            <span aria-hidden="true" className={s.swatch} style={{ height: '4px', backgroundColor: tokens.colorNeutralStroke1 }} />
+            Vertrag
+          </span>
           <span className={s.legendItem}>
             <span aria-hidden="true" className={mergeClasses(s.swatch, s.billed)} />
             verrechnet
@@ -135,6 +140,20 @@ export function Timeline({ proposals, lines, today }: ITimelineProps): React.Rea
                   {ended ? ' (gekündigt)' : ''}
                 </span>
                 <div className={s.track}>
+                  <Tooltip
+                    content={`Vertrag ${formatDate(p.position.beginn)} – ${p.position.ende ? formatDate(p.position.ende) : 'offen'}`}
+                    relationship="label"
+                  >
+                    <div
+                      tabIndex={0}
+                      role="img"
+                      className={s.contract}
+                      style={{
+                        left: `${pct(p.position.beginn)}%`,
+                        width: `${(p.position.ende ? pct(addDaysIso(p.position.ende, 1)) : 100) - pct(p.position.beginn)}%`
+                      }}
+                    />
+                  </Tooltip>
                   {bars
                     .filter((b) => b.bis >= rangeStart && b.von < rangeEnd)
                     .map((b) => {
@@ -160,6 +179,9 @@ export function Timeline({ proposals, lines, today }: ITimelineProps): React.Rea
               </div>
             );
           })}
+          {rows.every((r) => r.bars.length === 0) && (
+            <span className={shared.muted}>Noch keine verrechneten Zeiträume – sie erscheinen nach der ersten Rechnung.</span>
+          )}
         </div>
       </div>
     </section>

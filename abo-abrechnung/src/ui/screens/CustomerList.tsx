@@ -27,7 +27,6 @@ import { useShared } from '../styles';
 const useStyles = makeStyles({
   search: { width: '260px', maxWidth: '100%' },
   kpis: { display: 'flex', flexWrap: 'wrap', gap: '16px' },
-  table: { minWidth: '880px' },
   pill: { borderRadius: '16px' }
 });
 
@@ -138,7 +137,7 @@ export function CustomerList({ tab, onTab, onOpen, rechnungen }: ICustomerListPr
               </div>
             </div>
             <div className={shared.tableWrap}>
-              <Table className={s.table} aria-label="Kunden">
+              <Table className={shared.table} aria-label="Kunden">
                 <TableHeader>
                   <TableRow>
                     <TableHeaderCell>Kd.-Nr.</TableHeaderCell>

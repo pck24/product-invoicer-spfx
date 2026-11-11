@@ -29,7 +29,10 @@ export const useShared = makeStyles({
   row: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' },
   spaceBetween: { display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' },
   tableWrap: { overflowX: 'auto' },
+  // Tabellen passen sich der Breite an; nur auf schmalen Geräten (< 640 px) scrollen sie in der Karte
+  table: { width: '100%', tableLayout: 'auto', '@media (max-width: 640px)': { minWidth: '640px' } },
   num: { textAlign: 'right', fontVariantNumeric: 'tabular-nums' },
+  numHead: { '& .fui-TableHeaderCell__button': { justifyContent: 'flex-end' } },
   strong: { fontWeight: tokens.fontWeightSemibold },
   ended: { color: tokens.colorNeutralForeground4 },
   strike: { textDecorationLine: 'line-through' },
@@ -44,6 +47,8 @@ export const useShared = makeStyles({
     fontVariantNumeric: 'tabular-nums'
   },
   clickableRow: { cursor: 'pointer' },
-  formRow: { display: 'flex', flexWrap: 'wrap', gap: '12px', '& > *': { flexGrow: 1, flexBasis: '140px' } },
-  form: { display: 'flex', flexDirection: 'column', gap: '16px' }
+  // Felder oben ausrichten, sonst schiebt ein Hinweis/Fehlertext die Nachbarfelder nach unten
+  formRow: { display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '12px', '& > *': { flexGrow: 1, flexBasis: '140px', minWidth: 0 } },
+  // Labels halbfett wie im Mockup
+  form: { display: 'flex', flexDirection: 'column', gap: '16px', '& label': { fontWeight: tokens.fontWeightSemibold } }
 });

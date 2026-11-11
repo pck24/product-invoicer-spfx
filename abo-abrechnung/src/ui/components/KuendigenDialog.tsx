@@ -7,8 +7,6 @@ import {
   DialogContent,
   DialogSurface,
   DialogTitle,
-  Field,
-  Input,
   MessageBar,
   MessageBarBody
 } from '@fluentui/react-components';
@@ -16,6 +14,7 @@ import { formatDate, isIsoDate, todayIso } from '../../billing/dates';
 import { verrechnetBis } from '../../billing/proposal';
 import { IPositionItem } from '../../data/mapping';
 import { useApp } from '../AppContext';
+import { DateField } from './DateField';
 import { errorText, useData } from '../DataContext';
 
 export interface IKuendigenDialogProps {
@@ -71,9 +70,7 @@ export function KuendigenDialog({ position, onClose }: IKuendigenDialogProps): R
         <DialogBody>
           <DialogTitle>Position kündigen</DialogTitle>
           <DialogContent>
-            <Field label={`Leistungsende für „${position ? position.title : ''}“`} validationMessage={fehler}>
-              <Input type="date" value={ende} onChange={(_, d) => setEnde(d.value)} />
-            </Field>
+            <DateField label={`Leistungsende für „${position ? position.title : ''}“`} value={ende} onChange={setEnde} validationMessage={fehler} />
             {error && (
               <MessageBar intent="error">
                 <MessageBarBody>{error}</MessageBarBody>

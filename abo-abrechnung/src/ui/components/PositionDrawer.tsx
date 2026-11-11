@@ -24,6 +24,7 @@ import { IKunde, IPositionItem } from '../../data/mapping';
 import { useApp } from '../AppContext';
 import { errorText, useData } from '../DataContext';
 import { previewText } from '../derive';
+import { DateField } from './DateField';
 import { useShared } from '../styles';
 
 export interface IPositionDrawerProps {
@@ -188,18 +189,14 @@ export function PositionDrawer({ open, kunde, position, onClose }: IPositionDraw
             <Field label="Jahrespreis (€)" validationMessage={show('preis')}>
               <Input inputMode="decimal" value={form.preis} onChange={(_, d) => set({ preis: d.value })} />
             </Field>
-            <Field label="Laufzeit (Monate)" validationMessage={show('laufzeit')} hint="Länge eines Folgezeitraums">
+            <Field label="Laufzeit (Monate)" validationMessage={show('laufzeit')}>
               <Input type="number" min={1} value={form.laufzeit} onChange={(_, d) => set({ laufzeit: d.value })} />
             </Field>
           </div>
 
           <div className={shared.formRow}>
-            <Field label="Beginn" required validationMessage={show('beginn')}>
-              <Input type="date" value={form.beginn} onChange={(_, d) => set({ beginn: d.value })} />
-            </Field>
-            <Field label="Ende (optional)" validationMessage={show('ende')}>
-              <Input type="date" value={form.ende} onChange={(_, d) => set({ ende: d.value })} />
-            </Field>
+            <DateField label="Beginn" required value={form.beginn} onChange={(v) => set({ beginn: v })} validationMessage={show('beginn')} />
+            <DateField label="Ende (optional)" value={form.ende} onChange={(v) => set({ ende: v })} validationMessage={show('ende')} />
           </div>
 
           {preview && (
