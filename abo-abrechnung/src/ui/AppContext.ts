@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { SPFI } from '@pnp/sp';
 import { Repository } from '../data/repositories';
+import { IExportEnv } from '../export/pdfExport';
 
 export interface IAppSettings {
   ustSatz: number;
@@ -13,6 +14,9 @@ export interface IAppServices {
   sp: SPFI;
   repo: Repository;
   settings: IAppSettings;
+  exportEnv: IExportEnv;
+  /** öffnet die Webpart-Einstellungen (Property Pane) */
+  openSettings: () => void;
 }
 
 export const AppContext = React.createContext<IAppServices | undefined>(undefined);

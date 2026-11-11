@@ -39,6 +39,7 @@ import {
   toValidationLines
 } from '../invoiceDraft';
 import { useShared } from '../styles';
+import { useExport } from '../useExport';
 
 const useStyles = makeStyles({
   fields: { display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-start', '& > *': { flex: '1 1 220px' }, '& label': { fontWeight: tokens.fontWeightSemibold } },
@@ -98,6 +99,7 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
   const shared = useShared();
   const { repo, settings } = useApp();
   const { data, reload, notify } = useData();
+  const exp = useExport();
 
   const kunde = data ? data.kunden.filter((k) => k.id === kundeId)[0] : undefined;
   const entwurf = data && rechnungId ? data.rechnungen.filter((r) => r.id === rechnungId)[0] : undefined;
@@ -213,8 +215,10 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
       };
       const lines = toSaveLines(rows, positionen, fresh);
       const saved = rechnungId ? await repo.updateEntwurf(rechnungId, header, lines) : await repo.createRechnung(header, lines);
-      await reload();
+      const reloaded = await reload();
       notify(status === 'Entwurf' ? `Entwurf ${header.nummer} gespeichert` : `Rechnung ${header.nummer} erstellt`);
+      // Erstellte Rechnung: Detailbeilage mit Kosten automatisch als PDF ablegen (nie überschreiben)
+      if (status === 'Erstellt' && reloaded) await exp.run(reloaded, saved.id, 'mitKosten', false);
       onDone(saved.id);
     } catch (e) {
       setSaveError(errorText(e));
@@ -397,7 +401,7 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
           Die Zeiträume werden als Rechnungspositionen gespeichert. „Verrechnet bis“ ergibt sich daraus automatisch.
         </p>
         <div className={shared.row}>
-          {busy && <Spinner size="tiny" label={busy} />}
+          {(exp.busy || busy) && <Spinner size="tiny" label={exp.busy || busy} />}
           <Button onClick={onCancel} disabled={!!busy}>
             Abbrechen
           </Button>

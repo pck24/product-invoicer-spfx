@@ -5,6 +5,12 @@
     "id": "a9ee3f28-f61c-4e04-a995-c7ab656cc0cd",
     "version": "1.0.0.0",
     "includeClientSideAssets": true,
+    "webApiPermissionRequests": [
+      {
+        "resource": "Microsoft Graph",
+        "scope": "Sites.ReadWrite.All"
+      }
+    ],
     "developer": {
       "name": "",
       "websiteUrl": "",
@@ -14,10 +20,10 @@
     },
     "metadata": {
       "shortDescription": {
-        "default": "abo-abrechnung description"
+        "default": "Abo-Abrechnung wiederkehrender Leistungen"
       },
       "longDescription": {
-        "default": "abo-abrechnung description"
+        "default": "Kunden, Positionen und Folgerechnungen mit lückenlosen Leistungszeiträumen; PDF-Beilage aus einer Word-Vorlage."
       },
       "screenshotPaths": [],
       "videoUrl": "",

@@ -111,6 +111,23 @@ Das Modell ist bewusst einfach: **Jede Position hat einen Jahrespreis und eigene
 - **Aktionsmenü:** Anzeigen, PDF öffnen, „Als PDF exportieren“ (bis Phase 5 deaktiviert), Entwurf bearbeiten/löschen, Stornieren.
 - Die Spalte „Nächster Zeitraum“ in der Positionsliste ist auf deinen Wunsch entfallen.
 
+## PDF-Export (Phase 5)
+
+- **Zwei Varianten** (Vorgabe vom 11.11.2026), beide aus **einer** Vorlage:
+  - **„Leistungsaufstellung“ mit Kosten:** Positionen mit Monaten, Jahrespreis, Betrag und Summen, dazu die Zeitleiste.
+  - **„Leistungsübersicht“ ohne Kosten:** Positionen mit Menge und Zeitraum, dazu die Zeitleiste.
+  - Gesteuert wird das über die Bedingungen `{#mitKosten}` und `{^mitKosten}`.
+- **Automatik:** Bei „Rechnung erstellen“ wird automatisch die Variante mit Kosten exportiert. Eine bestehende Datei wird dabei nicht überschrieben. Ihr Link landet in `PdfLink`.
+- **Manuell:** Beide Varianten lassen sich jederzeit über das Rechnungsmenü exportieren, dabei wird überschrieben. Die Variante ohne Kosten bekommt den Zusatz `_Leistungsuebersicht` im Dateinamen und wird nicht in `PdfLink` gespeichert.
+- **Zeitleiste im PDF:** Sie ist als Word-Tabelle über den Raw-XML-Platzhalter `{@zeitleiste}` eingesetzt. Bilder bräuchten ein kostenpflichtiges docxtemplater-Modul.
+  - Spalten sind Monate, ab mehr als 3 Jahren Quartale.
+  - Zellen dieser Rechnung sind dunkelblau, andere Rechnungen hellblau.
+  - Die rote Linie markiert das Rechnungsdatum, ein „|“ die Kündigung.
+- **Property Pane:** Statt `@pnp/spfx-property-controls` gibt es Textfelder für serverrelative URLs, die live prüfen, ob Datei bzw. Ordner existiert. Die Property Controls bringen eine eigene React-17-Abhängigkeit mit, das Projekt läuft auf React 18.
+- **Rechnungsnummernmuster** entfällt (siehe oben). Im Property Pane stehen also Vorlage, Export-Ordner, Dateiname und USt-Satz.
+- **Graph:** `MSGraphClientV3`. Die Site wird über `/sites/{host}:{serverRelativeUrl}` gefunden, das DriveItem über `/sites/{id}/lists/{listId}/items/{itemId}/driveItem`. Fehlt die Freigabe, erscheint ein Hinweis auf „API-Zugriff“.
+- **Beispielvorlage** `docs/Rechnungsvorlage-Beispiel.docx` auf Basis von `Briefpapier.dotx`. Das Hintergrundbild liegt in der Kopfzeile. Die Ränder sind oben 4,0 cm und unten 3,5 cm, damit Logo und Fußzeile frei bleiben. Neu erzeugen lässt sie sich mit `docs/build-template.js`.
+
 ## Toolchain
 
 - SPFx 1.24.1 (Heft), React 18.3, TypeScript 5.8, Node 22 (`.nvmrc`), PnPjs 4, Fluent UI 9 mit dem Site-Theme (`tryGetThemeV2`).

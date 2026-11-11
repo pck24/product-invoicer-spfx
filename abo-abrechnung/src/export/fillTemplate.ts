@@ -1,0 +1,49 @@
+import Docxtemplater from 'docxtemplater';
+import PizZip from 'pizzip';
+import { ITemplateData } from './templateData';
+
+export interface IFillResult {
+  content: ArrayBuffer;
+  /** unbekannte Platzhalter (leer ersetzt) */
+  warnings: string[];
+}
+
+/**
+ * Befüllt eine Word-Vorlage (Begrenzer { }). Unbekannte Platzhalter werden leer
+ * ersetzt und als Warnung gemeldet; Syntaxfehler der Vorlage werfen eine lesbare Meldung.
+ */
+export function fillTemplate(template: ArrayBuffer, data: ITemplateData): IFillResult {
+  const warnings: string[] = [];
+  let doc: Docxtemplater;
+  try {
+    doc = new Docxtemplater(new PizZip(template), {
+      paragraphLoop: true,
+      linebreaks: true,
+      delimiters: { start: '{', end: '}' },
+      nullGetter: (part: { module?: string; value?: string; raw?: string }) => {
+        if (!part.module) {
+          const name = part.value || part.raw || '?';
+          if (warnings.indexOf(name) < 0) warnings.push(name);
+        }
+        return '';
+      }
+    });
+    doc.render(data);
+  } catch (e) {
+    throw new Error(`Die Word-Vorlage ist fehlerhaft: ${describe(e)}`);
+  }
+  const content = doc.getZip().generate({ type: 'arraybuffer', compression: 'DEFLATE' }) as ArrayBuffer;
+  return { content, warnings };
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function describe(e: any): string {
+  const errors = e && e.properties && e.properties.errors;
+  if (Array.isArray(errors) && errors.length) {
+    return errors
+      .map((x: any) => (x.properties && (x.properties.explanation || x.properties.id)) || x.message)
+      .slice(0, 5)
+      .join('; ');
+  }
+  return e instanceof Error ? e.message : String(e);
+}

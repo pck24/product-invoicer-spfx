@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { Button, Menu, MenuDivider, MenuItem, MenuList, MenuPopover, MenuTrigger } from '@fluentui/react-components';
+import { Button, Menu, MenuDivider, MenuItem, MenuList, MenuPopover, MenuTrigger, Spinner } from '@fluentui/react-components';
 import { MoreHorizontal20Regular } from '@fluentui/react-icons';
 import { IRechnung } from '../../data/mapping';
 import { useApp } from '../AppContext';
 import { errorText, useData } from '../DataContext';
+import { useExport } from '../useExport';
 import { ConfirmDialog, IConfirmRequest } from './ConfirmDialog';
 
 export interface IInvoiceActionsProps {
@@ -20,7 +21,8 @@ export interface IInvoiceActionsProps {
 /** Menü einer Rechnung: Anzeigen, PDF, Entwurf bearbeiten/löschen, Stornieren. */
 export function InvoiceActions({ rechnung, onEditDraft, onShow, onDeleted, label }: IInvoiceActionsProps): React.ReactElement {
   const { repo } = useApp();
-  const { reload, notify } = useData();
+  const { data, reload, notify } = useData();
+  const exp = useExport();
   const [confirm, setConfirm] = React.useState<IConfirmRequest | undefined>();
 
   const run = async (action: () => Promise<void>, ok: string, after?: () => void): Promise<void> => {
@@ -36,7 +38,8 @@ export function InvoiceActions({ rechnung, onEditDraft, onShow, onDeleted, label
 
   // Klicks (auch aus Menü- und Dialog-Portalen) nicht an eine klickbare Tabellenzeile weiterreichen
   return (
-    <span onClick={(e) => e.stopPropagation()}>
+    <span onClick={(e) => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+      {exp.busy && <Spinner size="tiny" label={exp.busy} />}
       <Menu positioning="below-end">
         <MenuTrigger disableButtonEnhancement>
           <Button
@@ -52,7 +55,12 @@ export function InvoiceActions({ rechnung, onEditDraft, onShow, onDeleted, label
           <MenuList>
             {onShow && <MenuItem onClick={() => onShow(rechnung)}>Anzeigen</MenuItem>}
             {rechnung.pdfUrl && <MenuItem onClick={() => window.open(rechnung.pdfUrl as string, '_blank')}>PDF öffnen</MenuItem>}
-            <MenuItem disabled>Als PDF exportieren (folgt)</MenuItem>
+            <MenuItem disabled={!!exp.busy || !data} onClick={() => data && exp.run(data, rechnung.id, 'mitKosten', true)}>
+              PDF mit Kosten exportieren
+            </MenuItem>
+            <MenuItem disabled={!!exp.busy || !data} onClick={() => data && exp.run(data, rechnung.id, 'ohneKosten', true)}>
+              PDF ohne Kosten exportieren
+            </MenuItem>
             {rechnung.status === 'Entwurf' && <MenuItem onClick={() => onEditDraft(rechnung)}>Entwurf bearbeiten</MenuItem>}
             {rechnung.status !== 'Storniert' && <MenuDivider />}
             {rechnung.status === 'Entwurf' && (

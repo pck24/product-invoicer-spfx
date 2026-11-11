@@ -16,8 +16,15 @@ export interface IDataContext {
   data: IAppData | undefined;
   loading: boolean;
   error: string | undefined;
-  reload: () => Promise<void>;
-  notify: (title: string, intent?: 'success' | 'error' | 'info', link?: { url: string; text: string }) => void;
+  /** lädt neu und liefert die frischen Daten */
+  reload: () => Promise<IAppData | undefined>;
+  notify: (title: string, intent?: 'success' | 'error' | 'info' | 'warning', link?: IToastLink) => void;
+}
+
+export interface IToastLink {
+  text: string;
+  url?: string;
+  onClick?: () => void;
 }
 
 const Ctx = React.createContext<IDataContext | undefined>(undefined);
@@ -41,7 +48,7 @@ export function DataProvider({ children }: { children: React.ReactNode }): React
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | undefined>();
 
-  const reload = React.useCallback(async () => {
+  const reload = React.useCallback(async (): Promise<IAppData | undefined> => {
     setLoading(true);
     setError(undefined);
     try {
@@ -52,9 +59,12 @@ export function DataProvider({ children }: { children: React.ReactNode }): React
         repo.getRechnungspositionen()
       ]);
       kunden.sort((a, b) => a.kundennummer.localeCompare(b.kundennummer));
-      setData({ kunden, positionen, rechnungen, rechnungspositionen, billedLines: toBilledLines(rechnungspositionen, rechnungen) });
+      const fresh = { kunden, positionen, rechnungen, rechnungspositionen, billedLines: toBilledLines(rechnungspositionen, rechnungen) };
+      setData(fresh);
+      return fresh;
     } catch (e) {
       setError(errorText(e));
+      return undefined;
     } finally {
       setLoading(false);
     }
@@ -71,9 +81,15 @@ export function DataProvider({ children }: { children: React.ReactNode }): React
           <ToastTitle>{title}</ToastTitle>
           {link && (
             <ToastBody>
-              <Link href={link.url} target="_blank" rel="noreferrer">
-                {link.text}
-              </Link>
+              {link.url ? (
+                <Link href={link.url} target="_blank" rel="noreferrer">
+                  {link.text}
+                </Link>
+              ) : (
+                <Link as="button" onClick={link.onClick}>
+                  {link.text}
+                </Link>
+              )}
             </ToastBody>
           )}
         </Toast>,
