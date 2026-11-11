@@ -104,5 +104,10 @@ Annahmen und Festlegungen, die über `PLAN.md` hinausgehen oder Unklarheiten auf
 ## Vorgaben von dir (2026-11-11)
 - **Detailbeilage:** Das PDF aus der Word-Vorlage ist eine Beilage zur Rechnung, nicht die Rechnung selbst. Die Beispielvorlage wird auf `Briefpapier.dotx` aufgebaut. Ein eigener Button „Detailbeilage (PDF)“ pro Rechnung (Kundendetail und Tab „Rechnungen“) erzeugt das PDF jederzeit, auch wiederholt. Er ersetzt „PDF neu erzeugen“. Der automatische Export bei „Rechnung erstellen“ bleibt.
 - **Domains:** Jede Domain ist eine eigene Position.
+- **Kein Abrechnungsmodus in der Oberfläche.** Der Modus ergibt sich aus der Preisbasis:
+  - **pro Monat → Stichtag:** Verrechnet wird bis zum Ende des Abrechnungsjahres.
+  - **pro Laufzeit → Laufzeit:** Verrechnet wird je volle Laufzeit ab dem eigenen Verlängerungsdatum, im Voraus.
+
+  Die Spalte `Abrechnungsmodus` bleibt in der Liste und wird beim Speichern mit dem abgeleiteten Wert gefüllt. Beim Lesen wird der Wert immer aus der Preisbasis abgeleitet. Das ersetzt die Regel aus dem Plan („Standard aus LaufzeitMonate“). Alle Huber-Pflichtfälle bleiben unverändert.
 - **Rechnungsnummer** kommt aus deinem externen Rechnungssystem und wird manuell eingegeben. Deshalb gibt es kein Rechnungsnummernmuster im Property Pane und keinen Nummernvorschlag. Das Feld startet leer, ist Pflicht und wird live auf Eindeutigkeit geprüft. Das Muster `K-{NNNN}` für Kundennummern bleibt.
 - **Ziel-Site:** `https://justelevate.sharepoint.com/sites/JustElevate-Kunden`. Sie ist in `config/serve.json` für die gehostete Workbench eingetragen.

@@ -1,4 +1,4 @@
-import { proposeForPosition, verrechnetBis, nextStart, computeLine, defaultModus } from '../proposal';
+import { proposeForPosition, verrechnetBis, nextStart, computeLine, modusFor } from '../proposal';
 import { billed, pos } from './fixtures';
 
 describe('verrechnetBis / nextStart', () => {
@@ -138,11 +138,9 @@ describe('Abrechnungsjahr ab April', () => {
   });
 });
 
-describe('defaultModus', () => {
-  it('unter 12 Monaten Stichtag, sonst Laufzeit', () => {
-    expect(defaultModus(1)).toBe('Stichtag');
-    expect(defaultModus(11)).toBe('Stichtag');
-    expect(defaultModus(12)).toBe('Laufzeit');
-    expect(defaultModus(24)).toBe('Laufzeit');
+describe('modusFor', () => {
+  it('pro Monat → Stichtag, pro Laufzeit → Laufzeit', () => {
+    expect(modusFor('Monat')).toBe('Stichtag');
+    expect(modusFor('Laufzeit')).toBe('Laufzeit');
   });
 });

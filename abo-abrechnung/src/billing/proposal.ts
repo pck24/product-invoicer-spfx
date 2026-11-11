@@ -166,7 +166,10 @@ export function proposeInvoice(positions: IPosition[], lines: IBilledLine[], sti
   return { stichtag, positions: sorted, segments };
 }
 
-/** Standarddefault des Abrechnungsmodus aus der Laufzeit. */
-export function defaultModus(laufzeitMonate: number): IPosition['modus'] {
-  return laufzeitMonate >= 12 ? 'Laufzeit' : 'Stichtag';
+/**
+ * Abrechnungsmodus ergibt sich aus der Preisbasis:
+ * pro Monat → bis zum Stichtag (Abrechnungsjahr), pro Laufzeit → volle Laufzeit ab eigenem Jahrestag.
+ */
+export function modusFor(preisbasis: IPosition['preisbasis']): IPosition['modus'] {
+  return preisbasis === 'Laufzeit' ? 'Laufzeit' : 'Stichtag';
 }

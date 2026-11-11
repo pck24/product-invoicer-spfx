@@ -19,8 +19,8 @@ import {
 import { Dismiss24Regular } from '@fluentui/react-icons';
 import { formatDate, isIsoDate } from '../../billing/dates';
 import { formatAmount, parseEuro } from '../../billing/money';
-import { defaultModus, verrechnetBis } from '../../billing/proposal';
-import { Abrechnungsmodus, IPosition, Preisbasis } from '../../billing/types';
+import { modusFor, verrechnetBis } from '../../billing/proposal';
+import { IPosition, Preisbasis } from '../../billing/types';
 import { IKunde, IPositionItem } from '../../data/mapping';
 import { useApp } from '../AppContext';
 import { errorText, useData } from '../DataContext';
@@ -40,15 +40,14 @@ interface IForm {
   preis: string;
   preisbasis: Preisbasis;
   laufzeit: string;
-  modus: Abrechnungsmodus;
   beginn: string;
   ende: string;
 }
 
 const PREISBASIS: { [k in Preisbasis]: string } = { Monat: 'pro Monat', Laufzeit: 'pro Laufzeit' };
-const MODUS: { [k in Abrechnungsmodus]: string } = {
-  Stichtag: 'Stichtag – am Abrechnungsjahr ausrichten',
-  Laufzeit: 'Laufzeit – eigener Jahrestag, im Voraus'
+const PREISBASIS_HINT: { [k in Preisbasis]: string } = {
+  Monat: 'Wird jährlich bis zum Rechnungsstichtag verrechnet.',
+  Laufzeit: 'Wird je volle Laufzeit ab Beginn im Voraus verrechnet (z. B. Domains).'
 };
 
 function toForm(p?: IPositionItem): IForm {
@@ -58,7 +57,6 @@ function toForm(p?: IPositionItem): IForm {
     preis: p ? formatAmount(p.preisCent) : '',
     preisbasis: p ? p.preisbasis : 'Monat',
     laufzeit: p ? String(p.laufzeitMonate) : '1',
-    modus: p ? p.modus : 'Stichtag',
     beginn: p ? p.beginn : '',
     ende: p && p.ende ? p.ende : ''
   };
@@ -69,7 +67,6 @@ export function PositionDrawer({ open, kunde, position, onClose }: IPositionDraw
   const { data, reload, notify } = useData();
   const shared = useShared();
   const [form, setForm] = React.useState<IForm>(toForm(position));
-  const [modusTouched, setModusTouched] = React.useState(false);
   const [touched, setTouched] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | undefined>();
@@ -77,7 +74,6 @@ export function PositionDrawer({ open, kunde, position, onClose }: IPositionDraw
   React.useEffect(() => {
     if (!open) return;
     setForm(toForm(position));
-    setModusTouched(!!position);
     setTouched(false);
     setError(undefined);
   }, [open, position]);
@@ -131,7 +127,7 @@ export function PositionDrawer({ open, kunde, position, onClose }: IPositionDraw
         preisCent: preisCent as number,
         preisbasis: form.preisbasis,
         laufzeitMonate: laufzeit,
-        modus: form.modus,
+        modus: modusFor(form.preisbasis),
         beginn: form.beginn,
         ende: form.ende || null
       }
@@ -141,8 +137,7 @@ export function PositionDrawer({ open, kunde, position, onClose }: IPositionDraw
   const applyVorlage = (title: string): void => {
     const v = vorlagen.filter((x) => x.title === title)[0];
     if (!v) return set({ title });
-    setModusTouched(true);
-    set({ title, preis: formatAmount(v.preisCent), preisbasis: v.preisbasis, laufzeit: String(v.laufzeitMonate), modus: v.modus });
+    set({ title, preis: formatAmount(v.preisCent), preisbasis: v.preisbasis, laufzeit: String(v.laufzeitMonate) });
   };
 
   const save = async (): Promise<void> => {
@@ -181,7 +176,7 @@ export function PositionDrawer({ open, kunde, position, onClose }: IPositionDraw
             save().catch(() => undefined);
           }}
         >
-          <Field label="Bezeichnung" required validationMessage={show('title')} hint="Vorschläge übernehmen Preis, Preisbasis, Laufzeit und Modus.">
+          <Field label="Bezeichnung" required validationMessage={show('title')} hint="Vorschläge übernehmen Preis, Preisbasis und Laufzeit.">
             <Combobox
               freeform
               value={form.title}
@@ -204,7 +199,10 @@ export function PositionDrawer({ open, kunde, position, onClose }: IPositionDraw
             <Field label="Preis (€)" validationMessage={show('preis')}>
               <Input inputMode="decimal" value={form.preis} onChange={(_, d) => set({ preis: d.value })} />
             </Field>
-            <Field label="Preisbasis">
+          </div>
+
+          <div className={shared.formRow}>
+            <Field label="Preisbasis" hint={PREISBASIS_HINT[form.preisbasis]} style={{ flexGrow: 2, flexBasis: '220px' }}>
               <Dropdown
                 value={PREISBASIS[form.preisbasis]}
                 selectedOptions={[form.preisbasis]}
@@ -214,32 +212,8 @@ export function PositionDrawer({ open, kunde, position, onClose }: IPositionDraw
                 <Option value="Laufzeit">{PREISBASIS.Laufzeit}</Option>
               </Dropdown>
             </Field>
-          </div>
-
-          <div className={shared.formRow}>
             <Field label="Laufzeit (Monate)" validationMessage={show('laufzeit')}>
-              <Input
-                type="number"
-                min={1}
-                value={form.laufzeit}
-                onChange={(_, d) => {
-                  const l = Number(d.value);
-                  set(modusTouched || !(l >= 1) ? { laufzeit: d.value } : { laufzeit: d.value, modus: defaultModus(l) });
-                }}
-              />
-            </Field>
-            <Field label="Abrechnungsmodus" style={{ flexGrow: 2, flexBasis: '220px' }}>
-              <Dropdown
-                value={MODUS[form.modus]}
-                selectedOptions={[form.modus]}
-                onOptionSelect={(_, d) => {
-                  setModusTouched(true);
-                  set({ modus: d.optionValue as Abrechnungsmodus });
-                }}
-              >
-                <Option value="Stichtag">{MODUS.Stichtag}</Option>
-                <Option value="Laufzeit">{MODUS.Laufzeit}</Option>
-              </Dropdown>
+              <Input type="number" min={1} value={form.laufzeit} onChange={(_, d) => set({ laufzeit: d.value })} />
             </Field>
           </div>
 

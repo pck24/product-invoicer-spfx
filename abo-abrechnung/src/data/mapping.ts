@@ -1,4 +1,5 @@
 /** Umwandlung zwischen SharePoint-Listenelementen und dem Domänenmodell (ohne SharePoint-Abhängigkeit). */
+import { modusFor } from '../billing/proposal';
 import { Art, IBilledLine, IPosition, ISODate, RechnungsStatus } from '../billing/types';
 
 export interface IKunde {
@@ -85,15 +86,17 @@ export function kundeToItem(k: Omit<IKunde, 'id'>): SPItem {
 }
 
 export function positionFromItem(i: SPItem): IPositionItem {
+  const preisbasis = i.Preisbasis === 'Laufzeit' ? 'Laufzeit' : 'Monat';
   return {
     id: i.Id,
     kundeId: i.KundeId,
     title: i.Title || '',
     menge: i.Menge === null || i.Menge === undefined ? 1 : i.Menge,
     preisCent: toCent(i.Preis),
-    preisbasis: i.Preisbasis === 'Laufzeit' ? 'Laufzeit' : 'Monat',
+    preisbasis,
     laufzeitMonate: i.LaufzeitMonate || 1,
-    modus: i.Abrechnungsmodus === 'Laufzeit' ? 'Laufzeit' : 'Stichtag',
+    // Der Modus folgt immer der Preisbasis (siehe DECISIONS.md); die Spalte dient nur der Transparenz.
+    modus: modusFor(preisbasis),
     beginn: fromSpDate(i.Beginn) || '',
     ende: fromSpDate(i.Ende)
   };
@@ -107,7 +110,7 @@ export function positionToItem(p: Omit<IPositionItem, 'id'>): SPItem {
     Preis: p.preisCent / 100,
     Preisbasis: p.preisbasis,
     LaufzeitMonate: p.laufzeitMonate,
-    Abrechnungsmodus: p.modus,
+    Abrechnungsmodus: modusFor(p.preisbasis),
     Beginn: toSpDate(p.beginn),
     Ende: toSpDate(p.ende)
   };
