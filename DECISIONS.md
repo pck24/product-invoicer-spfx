@@ -85,6 +85,22 @@ Annahmen und Festlegungen, die über `PLAN.md` hinausgehen oder Unklarheiten auf
 - Die Beispielkomponente und die Lokalisierungsdateien aus dem Scaffold sind entfernt. Die Oberfläche ist nur deutsch.
 - Das Theme ist das Fluent-v9-Theme der Site (`ThemeProvider.tryGetThemeV2()`, ab SPFx 1.24). Ersatzweise wird `webLightTheme` verwendet.
 
+## Phase 3 – UI für Kunden und Positionen
+
+- **Status in der Kundenübersicht** wird gegen den Standard-Stichtag ab heute berechnet:
+  - **rot „Neue Position · anteilig offen“:** Alle fälligen Positionen wurden noch nie verrechnet.
+  - **gelb „Fällig · n Zeiträume“:** Es gibt fällige Zeiträume, mindestens einer davon bei einer schon verrechneten Position.
+  - **grün „Verrechnet bis …“:** Nichts ist fällig. Angezeigt wird das früheste „verrechnet bis“ der noch laufenden Positionen.
+  - **grau:** „gekündigt“ (alle Positionen beendet), „keine Positionen“ oder „inaktiv“.
+- **Kennzahl „Nächster Abrechnungstermin“** ist der früheste Beginn des Abrechnungsjahres unter den fälligen Kunden.
+- **Gekündigt** bedeutet: Das Leistungsende liegt vor heute. Solche Positionen erscheinen grau und durchgestrichen und lassen sich über den Schalter ausblenden. Ein Leistungsende in der Zukunft wird nur als Vertragsende angezeigt.
+- **Kündigen** öffnet einen Dialog für das Leistungsende. Es darf nicht vor „verrechnet bis“ liegen, weil sonst ein bereits verrechneter Zeitraum über das Ende hinausginge.
+- **Löschen** steht im Zeilenmenü nur, solange keine Rechnungsposition auf die Position verweist, auch keine stornierte.
+- **Zeitleiste:** Sie zeigt bis zu 5 Kalenderjahre und endet mit dem spätesten Datum. Entwürfe zählen als verrechnet, im Tooltip steht „(Entwurf)“. Bei gekündigten Positionen sind die Segmente blasser.
+- **Datumsfelder** sind native Date-Inputs (`type="date"`). Fluent v9 hat keinen stabilen DatePicker im Kernpaket, und der Browser zeigt das Datum ohnehin im Format TT.MM.JJJJ an.
+- **Kunde anlegen:** Das Feld „Aktiv“ fehlt im Drawer, weil es im Plan nicht vorgesehen ist. Neue Kunden sind immer aktiv.
+- **Button-Text:** Ohne bisherige Rechnung heißt der Button „Erste Rechnung erstellen“, sonst „Folgerechnung erstellen“. Beide öffnen denselben Dialog.
+
 ## Vorgaben von dir (2026-11-11)
 - **Detailbeilage:** Das PDF aus der Word-Vorlage ist eine Beilage zur Rechnung, nicht die Rechnung selbst. Die Beispielvorlage wird auf `Briefpapier.dotx` aufgebaut. Ein eigener Button „Detailbeilage (PDF)“ pro Rechnung (Kundendetail und Tab „Rechnungen“) erzeugt das PDF jederzeit, auch wiederholt. Er ersetzt „PDF neu erzeugen“. Der automatische Export bei „Rechnung erstellen“ bleibt.
 - **Domains:** Jede Domain ist eine eigene Position.
