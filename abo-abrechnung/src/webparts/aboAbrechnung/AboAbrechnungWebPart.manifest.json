@@ -23,7 +23,6 @@
     "officeFabricIconFontName": "Money",
     "properties": {
       "ustSatz": 20,
-      "rechnungsnummernMuster": "RE-{YYYY}-{NNN}",
       "dateinamenMuster": "{rechnungsnummer}_{kundennummer}_{kundenname}"
     }
   }]

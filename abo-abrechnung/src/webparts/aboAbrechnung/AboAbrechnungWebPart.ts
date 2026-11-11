@@ -11,7 +11,6 @@ import { App } from '../../ui/App';
 
 export interface IAboAbrechnungWebPartProps {
   ustSatz: number;
-  rechnungsnummernMuster: string;
   dateinamenMuster: string;
   vorlageUrl?: string;
   exportOrdner?: string;
@@ -44,7 +43,6 @@ export default class AboAbrechnungWebPart extends BaseClientSideWebPart<IAboAbre
         repo: this._repo,
         settings: {
           ustSatz: typeof p.ustSatz === 'number' ? p.ustSatz : Number(p.ustSatz) || 20,
-          rechnungsnummernMuster: p.rechnungsnummernMuster || 'RE-{YYYY}-{NNN}',
           dateinamenMuster: p.dateinamenMuster || '{rechnungsnummer}_{kundennummer}_{kundenname}',
           vorlageUrl: p.vorlageUrl,
           exportOrdner: p.exportOrdner
@@ -74,8 +72,7 @@ export default class AboAbrechnungWebPart extends BaseClientSideWebPart<IAboAbre
             {
               groupName: 'Rechnung',
               groupFields: [
-                PropertyPaneTextField('ustSatz', { label: 'USt-Satz (%)' }),
-                PropertyPaneTextField('rechnungsnummernMuster', { label: 'Rechnungsnummernmuster' })
+                PropertyPaneTextField('ustSatz', { label: 'USt-Satz (%)' })
               ]
             }
           ]

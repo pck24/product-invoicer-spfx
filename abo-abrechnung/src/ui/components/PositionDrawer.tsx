@@ -1,0 +1,279 @@
+import * as React from 'react';
+import {
+  Button,
+  Combobox,
+  Dropdown,
+  DrawerBody,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerHeaderTitle,
+  Field,
+  Input,
+  MessageBar,
+  MessageBarBody,
+  MessageBarTitle,
+  Option,
+  OverlayDrawer,
+  Text
+} from '@fluentui/react-components';
+import { Dismiss24Regular } from '@fluentui/react-icons';
+import { formatDate, isIsoDate } from '../../billing/dates';
+import { formatAmount, parseEuro } from '../../billing/money';
+import { defaultModus, verrechnetBis } from '../../billing/proposal';
+import { Abrechnungsmodus, IPosition, Preisbasis } from '../../billing/types';
+import { IKunde, IPositionItem } from '../../data/mapping';
+import { useApp } from '../AppContext';
+import { errorText, useData } from '../DataContext';
+import { previewText } from '../derive';
+import { useShared } from '../styles';
+
+export interface IPositionDrawerProps {
+  open: boolean;
+  kunde: IKunde;
+  position?: IPositionItem;
+  onClose: () => void;
+}
+
+interface IForm {
+  title: string;
+  menge: string;
+  preis: string;
+  preisbasis: Preisbasis;
+  laufzeit: string;
+  modus: Abrechnungsmodus;
+  beginn: string;
+  ende: string;
+}
+
+const PREISBASIS: { [k in Preisbasis]: string } = { Monat: 'pro Monat', Laufzeit: 'pro Laufzeit' };
+const MODUS: { [k in Abrechnungsmodus]: string } = {
+  Stichtag: 'Stichtag – am Abrechnungsjahr ausrichten',
+  Laufzeit: 'Laufzeit – eigener Jahrestag, im Voraus'
+};
+
+function toForm(p?: IPositionItem): IForm {
+  return {
+    title: p ? p.title : '',
+    menge: p ? String(p.menge).replace('.', ',') : '1',
+    preis: p ? formatAmount(p.preisCent) : '',
+    preisbasis: p ? p.preisbasis : 'Monat',
+    laufzeit: p ? String(p.laufzeitMonate) : '1',
+    modus: p ? p.modus : 'Stichtag',
+    beginn: p ? p.beginn : '',
+    ende: p && p.ende ? p.ende : ''
+  };
+}
+
+export function PositionDrawer({ open, kunde, position, onClose }: IPositionDrawerProps): React.ReactElement {
+  const { repo } = useApp();
+  const { data, reload, notify } = useData();
+  const shared = useShared();
+  const [form, setForm] = React.useState<IForm>(toForm(position));
+  const [modusTouched, setModusTouched] = React.useState(false);
+  const [touched, setTouched] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | undefined>();
+
+  React.useEffect(() => {
+    if (!open) return;
+    setForm(toForm(position));
+    setModusTouched(!!position);
+    setTouched(false);
+    setError(undefined);
+  }, [open, position]);
+
+  const set = (patch: Partial<IForm>): void => setForm((f) => ({ ...f, ...patch }));
+
+  /** Vorschläge: Bezeichnungen bestehender Positionen, je Bezeichnung die zuletzt angelegte. */
+  const vorlagen = React.useMemo(() => {
+    const map: { [title: string]: IPositionItem } = {};
+    for (const p of data ? data.positionen : []) if (!map[p.title] || map[p.title].id < p.id) map[p.title] = p;
+    return Object.keys(map)
+      .sort((a, b) => a.localeCompare(b))
+      .map((k) => map[k]);
+  }, [data]);
+
+  const filtered = vorlagen.filter((v) => v.title.toLowerCase().indexOf(form.title.toLowerCase()) >= 0).slice(0, 20);
+
+  const lines = React.useMemo(
+    () => (data && position ? data.billedLines.filter((l) => l.positionId === position.id) : []),
+    [data, position]
+  );
+  const vb = position ? verrechnetBis(position.id, lines) : null;
+
+  // Validierung
+  const preisCent = parseEuro(form.preis);
+  const menge = Number(form.menge.replace(',', '.'));
+  const laufzeit = Number(form.laufzeit);
+  const errors: { [k: string]: string | undefined } = {
+    title: !form.title.trim() ? 'Bezeichnung ist erforderlich.' : undefined,
+    menge: !(menge > 0) ? 'Menge muss größer als 0 sein.' : undefined,
+    preis: preisCent === null || preisCent < 0 ? 'Preis im Format 9,90 eingeben.' : undefined,
+    laufzeit: !(laufzeit >= 1) || Math.round(laufzeit) !== laufzeit ? 'Ganze Monate ab 1 eingeben.' : undefined,
+    beginn: !isIsoDate(form.beginn) ? 'Beginn ist erforderlich.' : undefined,
+    ende:
+      form.ende && !isIsoDate(form.ende)
+        ? 'Ungültiges Datum.'
+        : form.ende && form.ende < form.beginn
+          ? 'Ende liegt vor dem Beginn.'
+          : form.ende && vb && form.ende < vb
+            ? `Bereits verrechnet bis ${formatDate(vb)} – Ende darf nicht davor liegen.`
+            : undefined
+  };
+  const valid = Object.keys(errors).every((k) => !errors[k]);
+  const show = (k: string): string | undefined => (touched || k === 'ende' ? errors[k] : undefined);
+
+  const candidate: IPosition | undefined = valid
+    ? {
+        id: position ? position.id : -1,
+        title: form.title.trim(),
+        menge,
+        preisCent: preisCent as number,
+        preisbasis: form.preisbasis,
+        laufzeitMonate: laufzeit,
+        modus: form.modus,
+        beginn: form.beginn,
+        ende: form.ende || null
+      }
+    : undefined;
+  const preview = candidate ? previewText(candidate, lines, kunde.stichtagMonat) : '';
+
+  const applyVorlage = (title: string): void => {
+    const v = vorlagen.filter((x) => x.title === title)[0];
+    if (!v) return set({ title });
+    setModusTouched(true);
+    set({ title, preis: formatAmount(v.preisCent), preisbasis: v.preisbasis, laufzeit: String(v.laufzeitMonate), modus: v.modus });
+  };
+
+  const save = async (): Promise<void> => {
+    setTouched(true);
+    if (!candidate) return;
+    setBusy(true);
+    setError(undefined);
+    try {
+      const { id, ...rest } = candidate;
+      await repo.savePosition({ ...rest, kundeId: kunde.id }, position ? id : undefined);
+      await reload();
+      notify(position ? 'Position gespeichert' : 'Position angelegt');
+      onClose();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <OverlayDrawer open={open} position="end" size="medium" onOpenChange={(_, d) => !d.open && onClose()}>
+      <DrawerHeader>
+        <DrawerHeaderTitle action={<Button appearance="subtle" aria-label="Schließen" icon={<Dismiss24Regular />} onClick={onClose} />}>
+          {position ? 'Position bearbeiten' : 'Position anlegen'}
+        </DrawerHeaderTitle>
+        <Text className={shared.muted}>
+          {kunde.name} · {kunde.kundennummer}
+        </Text>
+      </DrawerHeader>
+      <DrawerBody>
+        <form
+          className={shared.form}
+          onSubmit={(e) => {
+            e.preventDefault();
+            save().catch(() => undefined);
+          }}
+        >
+          <Field label="Bezeichnung" required validationMessage={show('title')} hint="Vorschläge übernehmen Preis, Preisbasis, Laufzeit und Modus.">
+            <Combobox
+              freeform
+              value={form.title}
+              selectedOptions={[form.title]}
+              onChange={(e) => set({ title: (e.target as HTMLInputElement).value })}
+              onOptionSelect={(_, d) => d.optionValue && applyVorlage(d.optionValue)}
+            >
+              {filtered.map((v) => (
+                <Option key={v.title} value={v.title}>
+                  {v.title}
+                </Option>
+              ))}
+            </Combobox>
+          </Field>
+
+          <div className={shared.formRow}>
+            <Field label="Menge" validationMessage={show('menge')}>
+              <Input inputMode="decimal" value={form.menge} onChange={(_, d) => set({ menge: d.value })} />
+            </Field>
+            <Field label="Preis (€)" validationMessage={show('preis')}>
+              <Input inputMode="decimal" value={form.preis} onChange={(_, d) => set({ preis: d.value })} />
+            </Field>
+            <Field label="Preisbasis">
+              <Dropdown
+                value={PREISBASIS[form.preisbasis]}
+                selectedOptions={[form.preisbasis]}
+                onOptionSelect={(_, d) => set({ preisbasis: d.optionValue as Preisbasis })}
+              >
+                <Option value="Monat">{PREISBASIS.Monat}</Option>
+                <Option value="Laufzeit">{PREISBASIS.Laufzeit}</Option>
+              </Dropdown>
+            </Field>
+          </div>
+
+          <div className={shared.formRow}>
+            <Field label="Laufzeit (Monate)" validationMessage={show('laufzeit')}>
+              <Input
+                type="number"
+                min={1}
+                value={form.laufzeit}
+                onChange={(_, d) => {
+                  const l = Number(d.value);
+                  set(modusTouched || !(l >= 1) ? { laufzeit: d.value } : { laufzeit: d.value, modus: defaultModus(l) });
+                }}
+              />
+            </Field>
+            <Field label="Abrechnungsmodus" style={{ flexGrow: 2, flexBasis: '220px' }}>
+              <Dropdown
+                value={MODUS[form.modus]}
+                selectedOptions={[form.modus]}
+                onOptionSelect={(_, d) => {
+                  setModusTouched(true);
+                  set({ modus: d.optionValue as Abrechnungsmodus });
+                }}
+              >
+                <Option value="Stichtag">{MODUS.Stichtag}</Option>
+                <Option value="Laufzeit">{MODUS.Laufzeit}</Option>
+              </Dropdown>
+            </Field>
+          </div>
+
+          <div className={shared.formRow}>
+            <Field label="Beginn" required validationMessage={show('beginn')}>
+              <Input type="date" value={form.beginn} onChange={(_, d) => set({ beginn: d.value })} />
+            </Field>
+            <Field label="Ende (optional)" validationMessage={show('ende')}>
+              <Input type="date" value={form.ende} onChange={(_, d) => set({ ende: d.value })} />
+            </Field>
+          </div>
+
+          {preview && (
+            <MessageBar intent="info" layout="multiline">
+              <MessageBarBody>
+                <MessageBarTitle>Vorschau</MessageBarTitle>
+                {preview}
+              </MessageBarBody>
+            </MessageBar>
+          )}
+          {error && (
+            <MessageBar intent="error">
+              <MessageBarBody>{error}</MessageBarBody>
+            </MessageBar>
+          )}
+          <button type="submit" hidden />
+        </form>
+      </DrawerBody>
+      <DrawerFooter>
+        <Button onClick={onClose}>Abbrechen</Button>
+        <Button appearance="primary" disabled={busy} onClick={() => save()}>
+          {busy ? 'Speichert …' : 'Speichern'}
+        </Button>
+      </DrawerFooter>
+    </OverlayDrawer>
+  );
+}

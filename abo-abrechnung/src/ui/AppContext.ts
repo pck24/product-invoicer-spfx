@@ -4,7 +4,6 @@ import { Repository } from '../data/repositories';
 
 export interface IAppSettings {
   ustSatz: number;
-  rechnungsnummernMuster: string;
   dateinamenMuster: string;
   vorlageUrl?: string;
   exportOrdner?: string;

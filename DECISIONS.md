@@ -88,4 +88,5 @@ Annahmen und Festlegungen, die über `PLAN.md` hinausgehen oder Unklarheiten auf
 ## Vorgaben von dir (2026-11-11)
 - **Detailbeilage:** Das PDF aus der Word-Vorlage ist eine Beilage zur Rechnung, nicht die Rechnung selbst. Die Beispielvorlage wird auf `Briefpapier.dotx` aufgebaut. Ein eigener Button „Detailbeilage (PDF)“ pro Rechnung (Kundendetail und Tab „Rechnungen“) erzeugt das PDF jederzeit, auch wiederholt. Er ersetzt „PDF neu erzeugen“. Der automatische Export bei „Rechnung erstellen“ bleibt.
 - **Domains:** Jede Domain ist eine eigene Position.
+- **Rechnungsnummer** kommt aus deinem externen Rechnungssystem und wird manuell eingegeben. Deshalb gibt es kein Rechnungsnummernmuster im Property Pane und keinen Nummernvorschlag. Das Feld startet leer, ist Pflicht und wird live auf Eindeutigkeit geprüft. Das Muster `K-{NNNN}` für Kundennummern bleibt.
 - **Ziel-Site:** `https://justelevate.sharepoint.com/sites/JustElevate-Kunden`. Sie ist in `config/serve.json` für die gehostete Workbench eingetragen.
