@@ -14,9 +14,16 @@ export interface IFillResult {
  */
 export function fillTemplate(template: ArrayBuffer, data: ITemplateData): IFillResult {
   const warnings: string[] = [];
+  const source = new PizZip(template);
+  const bodyFile = source.file('word/document.xml');
+  if (!bodyFile || bodyFile.asText().indexOf('{') < 0) {
+    throw new Error(
+      'Die gewählte Word-Vorlage enthält keine Platzhalter (z. B. {rechnungsnummer}). Bitte im Webpart die Rechnungsvorlage statt des leeren Briefpapiers eintragen.'
+    );
+  }
   let doc: Docxtemplater;
   try {
-    doc = new Docxtemplater(new PizZip(template), {
+    doc = new Docxtemplater(source, {
       paragraphLoop: true,
       linebreaks: true,
       delimiters: { start: '{', end: '}' },

@@ -109,6 +109,16 @@ describe('Beispielvorlage befüllen', () => {
     expect(r.warnings).toEqual(['gibtsNicht']);
   });
 
+  it('Vorlage ohne Platzhalter (leeres Briefpapier) bricht mit klarer Meldung ab', () => {
+    const zip = new PizZip(ab);
+    const xml = zip.file('word/document.xml')?.asText() || '';
+    zip.file('word/document.xml', xml.substring(0, xml.indexOf('<w:body>') + 8) + '<w:p/></w:body></w:document>');
+    const buf = zip.generate({ type: 'nodebuffer' }) as Buffer;
+    expect(() => fillTemplate(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer, buildTemplateData(input, 'mitKosten'))).toThrow(
+      /keine Platzhalter/
+    );
+  });
+
   it('Ergebnis enthält keine Ordner-Einträge (sonst scheitert die Online-PDF-Konvertierung)', () => {
     const out = new PizZip(fillTemplate(ab, buildTemplateData(input, 'mitKosten')).content);
     expect(Object.keys(out.files).filter((n) => out.files[n].dir)).toEqual([]);
