@@ -58,6 +58,33 @@ Annahmen und Festlegungen, die über `PLAN.md` hinausgehen oder Unklarheiten auf
 - `RE-{YYYY}-{NNN}` und `K-{NNNN}`: Der Vorschlag ist die höchste vorhandene Nummer mit gleichem Präfix (bei Rechnungen gleiches Jahr) plus 1.
 - Für Kundennummern beginnt die Zählung bei 1 (`K-0001`).
 
+## Phase 2 – Datenebene
+
+### Provisionierung
+- **Schema** steht deklarativ in `src/data/lists.ts`. `planProvisioning` ermittelt ohne SharePoint-Zugriff, was fehlt, und ist getestet. Bei einer leeren Site sind das alle Listen und Spalten, bei einer vollständigen nichts, bei einer teilweise eingerichteten nur das Fehlende.
+- Spalten werden per `createFieldAsXml` mit festem internem Namen angelegt (Option `AddFieldInternalNameHint`) und in die Standardansicht aufgenommen.
+- **Nur bei neu angelegten Listen** bekommt die Title-Spalte einen Anzeigenamen (Kundenname, Bezeichnung, Rechnungsnummer). Bei `AA_Rechnungen` wird sie zusätzlich eindeutig und indiziert. Bestehende Listen bleiben unverändert.
+- Gibt es eine Liste schon, aber eine Spalte fehlt, wird nur die Spalte ergänzt.
+- Die Listen erscheinen nicht in der Schnellstartleiste.
+- **Anzeigenamen mit Umlauten** sind erlaubt, etwa „Vorgänger“ oder „Laufzeit (Monate)“. Die internen Namen entsprechen genau dem Plan.
+- Die Spalte `Preis` hat den Typ Währung mit LCID 3079 (de-AT). Intern wird sie beim Lesen und Schreiben in Cent umgerechnet.
+- Lookups löschen nicht kaskadierend. Gelöscht wird nur über die im Plan beschriebenen Aktionen.
+
+### Datumsfelder in SharePoint
+- Die Spalten haben den Typ DateTime mit Format `DateOnly`. SharePoint speichert solche Werte als Mitternacht in der Zeitzone der Site und liefert sie in UTC. Für Wien kommt der 01.01.2027 also als `2026-12-31T23:00:00Z` zurück.
+- Deshalb wird **12:00 UTC geschrieben**, und beim Lesen wird auf den nächstgelegenen Kalendertag gerundet (+12 h, Datumsteil). Das funktioniert für Site-Zeitzonen zwischen UTC−11 und UTC+11.
+
+### Repositories
+- Gelesen werden höchstens 5.000 Elemente je Abfrage, ohne Paging. Für eine Einzelunternehmer-Abrechnung reicht das.
+- **Position löschen** ist nur erlaubt, wenn keine Rechnungsposition auf sie verweist, auch keine stornierte.
+- **Rechnung anlegen:** Zuerst wird die Rechnung gespeichert, dann die Positionen nacheinander. Schlägt ein Schritt fehl, werden die schon angelegten Positionen und die Rechnung wieder gelöscht.
+- **Entwurf löschen:** Der Status wird vorher frisch gelesen. Gelöscht wird nur bei `Entwurf`, dann zuerst die Positionen und danach die Rechnung.
+
+### Toolchain
+- Die Jest-Coverage ist abgeschaltet (`config/jest.config.json`). Unter Windows sperrt der Virenscanner den Ausgabeordner gelegentlich (EPERM/EBUSY). Bei direkt aufeinanderfolgenden Builds kann eine solche Sperre auch im Jest-Cache auftreten. Ein erneuter Lauf behebt sie.
+- Die Beispielkomponente und die Lokalisierungsdateien aus dem Scaffold sind entfernt. Die Oberfläche ist nur deutsch.
+- Das Theme ist das Fluent-v9-Theme der Site (`ThemeProvider.tryGetThemeV2()`, ab SPFx 1.24). Ersatzweise wird `webLightTheme` verwendet.
+
 ## Vorgaben von dir (2026-11-11)
 - **Detailbeilage:** Das PDF aus der Word-Vorlage ist eine Beilage zur Rechnung, nicht die Rechnung selbst. Die Beispielvorlage wird auf `Briefpapier.dotx` aufgebaut. Ein eigener Button „Detailbeilage (PDF)“ pro Rechnung (Kundendetail und Tab „Rechnungen“) erzeugt das PDF jederzeit, auch wiederholt. Er ersetzt „PDF neu erzeugen“. Der automatische Export bei „Rechnung erstellen“ bleibt.
 - **Domains:** Jede Domain ist eine eigene Position.

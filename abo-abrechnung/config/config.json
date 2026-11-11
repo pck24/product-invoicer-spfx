@@ -12,7 +12,5 @@
     }
   },
   "externals": {},
-  "localizedResources": {
-    "AboAbrechnungWebPartStrings": "lib/webparts/aboAbrechnung/loc/{locale}.js"
-  }
+  "localizedResources": {}
 }

@@ -1,0 +1,5 @@
+{
+  "extends": "@microsoft/spfx-web-build-rig/profiles/default/config/jest.config.json",
+  // Coverage-Ausgabe deaktiviert: unter Windows sperren Virenscanner/IDE den Ordner gelegentlich (EPERM).
+  "collectCoverage": false
+}

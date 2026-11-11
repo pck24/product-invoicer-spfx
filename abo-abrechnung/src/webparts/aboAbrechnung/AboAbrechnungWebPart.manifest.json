@@ -18,11 +18,13 @@
   "preconfiguredEntries": [{
     "groupId": "5c03119e-3074-46fd-976b-c60198311f70", // Advanced
     "group": { "default": "Advanced" },
-    "title": { "default": "AboAbrechnung" },
+    "title": { "default": "Abo-Abrechnung" },
     "description": { "default": "Abo-Abrechnung wiederkehrender Leistungen" },
-    "officeFabricIconFontName": "Page",
+    "officeFabricIconFontName": "Money",
     "properties": {
-      "description": "AboAbrechnung"
+      "ustSatz": 20,
+      "rechnungsnummernMuster": "RE-{YYYY}-{NNN}",
+      "dateinamenMuster": "{rechnungsnummer}_{kundennummer}_{kundenname}"
     }
   }]
 }

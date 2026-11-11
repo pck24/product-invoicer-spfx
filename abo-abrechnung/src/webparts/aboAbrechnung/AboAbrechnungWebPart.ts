@@ -1,96 +1,58 @@
 import * as React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { Version } from '@microsoft/sp-core-library';
-import {
-  type IPropertyPaneConfiguration,
-  PropertyPaneTextField
-} from '@microsoft/sp-property-pane';
+import { type IPropertyPaneConfiguration, PropertyPaneTextField } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
-import { IReadonlyTheme } from '@microsoft/sp-component-base';
-
-import * as strings from 'AboAbrechnungWebPartStrings';
-import AboAbrechnung from './components/AboAbrechnung';
-import { IAboAbrechnungProps } from './components/IAboAbrechnungProps';
+import { ThemeChangedEventArgs, ThemeProvider } from '@microsoft/sp-component-base';
+import type { Theme } from '@fluentui/react-components';
+import { spfi, SPFx, SPFI } from '@pnp/sp';
+import { Repository } from '../../data/repositories';
+import { App } from '../../ui/App';
 
 export interface IAboAbrechnungWebPartProps {
-  description: string;
+  ustSatz: number;
+  rechnungsnummernMuster: string;
+  dateinamenMuster: string;
+  vorlageUrl?: string;
+  exportOrdner?: string;
 }
 
 export default class AboAbrechnungWebPart extends BaseClientSideWebPart<IAboAbrechnungWebPartProps> {
-
-  private _isDarkTheme: boolean = false;
-  private _environmentMessage: string = '';
   private _root: Root | undefined;
+  private _sp!: SPFI;
+  private _repo!: Repository;
+  private _themeProvider!: ThemeProvider;
+  private _theme: Theme | undefined;
 
-  public render(): void {
-    const element: React.ReactElement<IAboAbrechnungProps> = React.createElement(
-      AboAbrechnung,
-      {
-        description: this.properties.description,
-        isDarkTheme: this._isDarkTheme,
-        environmentMessage: this._environmentMessage,
-        userDisplayName: this.context.pageContext.user.displayName
-      }
-    );
-
-    if (!this._root) {
-      this._root = createRoot(this.domElement);
-    }
-
-    this._root.render(element);
-  }
-
-  protected onInit(): Promise<void> {
-    return this._getEnvironmentMessage().then(message => {
-      this._environmentMessage = message;
+  protected async onInit(): Promise<void> {
+    this._sp = spfi().using(SPFx(this.context));
+    this._repo = new Repository(this._sp);
+    this._themeProvider = this.context.serviceScope.consume(ThemeProvider.serviceKey);
+    this._theme = this._themeProvider.tryGetThemeV2();
+    this._themeProvider.themeChangedEvent.add(this, (args: ThemeChangedEventArgs) => {
+      this._theme = args.themeV2;
+      this.render();
     });
   }
 
-
-
-  private _getEnvironmentMessage(): Promise<string> {
-    if (!!this.context.sdks.microsoftTeams) { // running in Teams, office.com or Outlook
-      return this.context.sdks.microsoftTeams.teamsJs.app.getContext()
-        .then(context => {
-          let environmentMessage: string = '';
-          switch (context.app.host.name) {
-            case 'Office': // running in Office
-              environmentMessage = this.context.isServedFromLocalhost ? strings.AppLocalEnvironmentOffice : strings.AppOfficeEnvironment;
-              break;
-            case 'Outlook': // running in Outlook
-              environmentMessage = this.context.isServedFromLocalhost ? strings.AppLocalEnvironmentOutlook : strings.AppOutlookEnvironment;
-              break;
-            case 'Teams': // running in Teams
-            case 'TeamsModern':
-              environmentMessage = this.context.isServedFromLocalhost ? strings.AppLocalEnvironmentTeams : strings.AppTeamsTabEnvironment;
-              break;
-            default:
-              environmentMessage = strings.UnknownEnvironment;
-          }
-
-          return environmentMessage;
-        });
-    }
-
-    return Promise.resolve(this.context.isServedFromLocalhost ? strings.AppLocalEnvironmentSharePoint : strings.AppSharePointEnvironment);
-  }
-
-  protected onThemeChanged(currentTheme: IReadonlyTheme | undefined): void {
-    if (!currentTheme) {
-      return;
-    }
-
-    this._isDarkTheme = !!currentTheme.isInverted;
-    const {
-      semanticColors
-    } = currentTheme;
-
-    if (semanticColors) {
-      this.domElement.style.setProperty('--bodyText', semanticColors.bodyText || null);
-      this.domElement.style.setProperty('--link', semanticColors.link || null);
-      this.domElement.style.setProperty('--linkHovered', semanticColors.linkHovered || null);
-    }
-
+  public render(): void {
+    const p = this.properties;
+    const element = React.createElement(App, {
+      theme: this._theme,
+      services: {
+        sp: this._sp,
+        repo: this._repo,
+        settings: {
+          ustSatz: typeof p.ustSatz === 'number' ? p.ustSatz : Number(p.ustSatz) || 20,
+          rechnungsnummernMuster: p.rechnungsnummernMuster || 'RE-{YYYY}-{NNN}',
+          dateinamenMuster: p.dateinamenMuster || '{rechnungsnummer}_{kundennummer}_{kundenname}',
+          vorlageUrl: p.vorlageUrl,
+          exportOrdner: p.exportOrdner
+        }
+      }
+    });
+    if (!this._root) this._root = createRoot(this.domElement);
+    this._root.render(element);
   }
 
   protected onDispose(): void {
@@ -102,20 +64,18 @@ export default class AboAbrechnungWebPart extends BaseClientSideWebPart<IAboAbre
     return Version.parse('1.0');
   }
 
+  // Wird in Phase 5 um Vorlage, Export-Ordner und Dateinamen ergänzt.
   protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
-          header: {
-            description: strings.PropertyPaneDescription
-          },
+          header: { description: 'Einstellungen der Abo-Abrechnung' },
           groups: [
             {
-              groupName: strings.BasicGroupName,
+              groupName: 'Rechnung',
               groupFields: [
-                PropertyPaneTextField('description', {
-                  label: strings.DescriptionFieldLabel
-                })
+                PropertyPaneTextField('ustSatz', { label: 'USt-Satz (%)' }),
+                PropertyPaneTextField('rechnungsnummernMuster', { label: 'Rechnungsnummernmuster' })
               ]
             }
           ]
