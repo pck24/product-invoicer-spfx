@@ -1,0 +1,22 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "whichFolder": "subdir",
+    "solutionName": "abo-abrechnung",
+    "environment": "spo",
+    "packageManager": "npm",
+    "skipFeatureDeployment": false,
+    "useGulp": false,
+    "componentType": "webpart",
+    "template": "react",
+    "componentName": "AboAbrechnung",
+    "componentDescription": "Abo-Abrechnung wiederkehrender Leistungen",
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "22.20.0",
+    "sdksVersions": {},
+    "version": "1.24.1",
+    "libraryName": "abo-abrechnung",
+    "libraryId": "a9ee3f28-f61c-4e04-a995-c7ab656cc0cd",
+    "solutionShortDescription": "abo-abrechnung description"
+  }
+}

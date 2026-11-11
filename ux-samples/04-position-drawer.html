@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Position anlegen</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0F6CBD}a:hover{color:#0C3B5E}
+label.field{display:flex;flex-direction:column;gap:6px;font-weight:600}
+label.field input,label.field select{height:36px;box-sizing:border-box;padding:0 10px;border:1px solid #C7C7C7;border-radius:4px;font:inherit;font-weight:400;background:#FFFFFF}
+</style>
+</head>
+<body>
+<!-- Drawer-Muster für "Position anlegen/bearbeiten" (gilt sinngemäß auch für "Kunde anlegen"). Fluent v9 OverlayDrawer, position="end", size="medium". -->
+<div style="min-height: 100vh; background: rgba(0,0,0,0.4); font-family: 'Segoe UI', Inter, system-ui, sans-serif; color: #242424; font-size: 14px; display: flex; justify-content: flex-end">
+<aside role="dialog" aria-modal="true" aria-labelledby="drawer-title" style="width: 100%; max-width: 480px; min-height: 100vh; background: #FFFFFF; box-shadow: -8px 0 24px rgba(0,0,0,0.18); display: flex; flex-direction: column">
+
+<header style="padding: 20px 24px; border-bottom: 1px solid #E0E0E0; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h2 id="drawer-title" style="margin: 0; font-size: 20px; font-weight: 600">Position anlegen</h2>
+<span style="color: #616161">Bäckerei Huber GmbH · K-1001</span>
+</div>
+<button type="button" aria-label="Schließen" style="width: 32px; height: 32px; border: none; background: transparent; border-radius: 4px; cursor: pointer">
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#424242" stroke-width="1.5" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"></path></svg>
+</button>
+</header>
+
+<form style="flex: 1; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto">
+<label class="field">Bezeichnung
+<input type="text" value="Cloud-Backup 100 GB" list="vorschlaege">
+<span style="font-weight: 400; color: #616161; font-size: 13px">Combobox: schlägt Bezeichnungen bestehender Positionen vor und übernimmt deren Werte.</span>
+</label>
+<datalist id="vorschlaege"><option value="Cloud-Backup 100 GB"></option><option value="Microsoft 365 Business Standard"></option><option value="Domain .at"></option></datalist>
+
+<div style="display: flex; gap: 12px; flex-wrap: wrap">
+<label class="field" style="flex: 1 1 120px">Menge<input type="number" value="1"></label>
+<label class="field" style="flex: 1 1 140px">Preis (€)<input type="text" value="9,90"></label>
+<label class="field" style="flex: 1 1 140px">Preisbasis
+<select><option selected>pro Monat</option><option>pro Laufzeit</option></select>
+</label>
+</div>
+
+<div style="display: flex; gap: 12px; flex-wrap: wrap">
+<label class="field" style="flex: 1 1 140px">Laufzeit (Monate)<input type="number" value="1"></label>
+<label class="field" style="flex: 2 1 220px">Abrechnungsmodus
+<select><option selected>Stichtag – am Abrechnungsjahr ausrichten</option><option>Laufzeit – eigener Jahrestag, im Voraus</option></select>
+</label>
+</div>
+
+<div style="display: flex; gap: 12px; flex-wrap: wrap">
+<label class="field" style="flex: 1 1 180px">Beginn<input type="text" value="01.08.2026"></label>
+<label class="field" style="flex: 1 1 180px">Ende (optional)<input type="text" placeholder="TT.MM.JJJJ"></label>
+</div>
+
+<div role="status" style="background: #EBF3FC; border: 1px solid #B4D6FA; border-radius: 6px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; color: #0C3B5E">
+<strong style="font-weight: 600">Vorschau</strong>
+<span>Wird erstmals verrechnet: 01.08.2026 – 31.12.2026 (anteilig, 5 Monate, 49,50 €), danach jährlich zum 01.01.</span>
+</div>
+</form>
+
+<footer style="padding: 16px 24px; border-top: 1px solid #E0E0E0; display: flex; justify-content: flex-end; gap: 8px">
+<button type="button" style="height: 36px; padding: 0 16px; border-radius: 4px; border: 1px solid #C7C7C7; background: #FFFFFF; color: #242424; font: inherit">Abbrechen</button>
+<button type="button" style="height: 36px; padding: 0 16px; border-radius: 4px; border: 1px solid #0F6CBD; background: #0F6CBD; color: #FFFFFF; font: inherit; font-weight: 600">Speichern</button>
+</footer>
+</aside>
+</div>
+</body>
+</html>

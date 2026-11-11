@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Folgerechnung erstellen</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0F6CBD}a:hover{color:#0C3B5E}
+</style>
+</head>
+<body>
+
+
+<div style="min-height: 100vh; box-sizing: border-box; background: #F5F5F5; padding: 24px 16px; font-family: 'Segoe UI', Inter, system-ui, sans-serif; color: #242424; font-size: 14px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px">
+
+<nav aria-label="Pfad" style="display: flex; gap: 8px; align-items: center; color: #616161; flex-wrap: wrap">
+<a href="01-kundenuebersicht.html" style="text-decoration: none">Kunden</a>
+<span aria-hidden="true">›</span>
+<a href="02-kundendetail.html" style="text-decoration: none">Bäckerei Huber GmbH</a>
+<span aria-hidden="true">›</span>
+<span style="color: #242424">Folgerechnung</span>
+</nav>
+
+<header style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 8px; padding: 20px 24px; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 style="margin: 0; font-size: 22px; font-weight: 600">Folgerechnung erstellen</h1>
+<p style="margin: 0; color: #616161">Bäckerei Huber GmbH (K-1001) · schließt an RE-2026-004 vom 12.01.2026 an</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 16px">
+<label style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 6px; font-weight: 600">Rechnungsnummer
+<input type="text" value="RE-2027-001" style="height: 36px; box-sizing: border-box; padding: 0 10px; border: 1px solid #C7C7C7; border-bottom: 2px solid #0F6CBD; border-radius: 4px; font: inherit; font-weight: 400">
+</label>
+<label style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 6px; font-weight: 600">Rechnungsdatum
+<input type="text" value="08.01.2027" style="height: 36px; box-sizing: border-box; padding: 0 10px; border: 1px solid #C7C7C7; border-radius: 4px; font: inherit; font-weight: 400">
+</label>
+<label style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 6px; font-weight: 600">Verrechnen bis Stichtag
+<input type="text" value="31.12.2027" style="height: 36px; box-sizing: border-box; padding: 0 10px; border: 1px solid #C7C7C7; border-radius: 4px; font: inherit; font-weight: 400">
+</label>
+</div>
+</header>
+
+<div role="status" style="background: #E7F4E7; border: 1px solid #9FD89F; border-radius: 8px; padding: 12px 16px; display: flex; gap: 12px; align-items: flex-start; color: #0E4A0E">
+<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#0E5C0E" stroke-width="1.8" aria-hidden="true" style="flex: none; margin-top: 1px"><circle cx="10" cy="10" r="8"></circle><path d="M6.5 10.2l2.3 2.3 4.7-4.9"></path></svg>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<strong style="font-weight: 600">Prüfung bestanden</strong>
+<span>Keine Überschneidung mit bereits verrechneten Zeiträumen. Alle Zeiträume schließen lückenlos an „verrechnet bis“ an.</span>
+</div>
+</div>
+
+<section style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 8px; display: flex; flex-direction: column">
+<div style="padding: 16px 20px; border-bottom: 1px solid #E0E0E0; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap">
+<h2 style="margin: 0; font-size: 16px; font-weight: 600">Vorgeschlagene Positionen</h2>
+<button type="button" style="height: 32px; padding: 0 12px; border-radius: 4px; border: 1px solid #C7C7C7; background: #FFFFFF; color: #242424; font: inherit">+ Einmalige Position</button>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 1000px; border-collapse: collapse; font-variant-numeric: tabular-nums">
+<thead>
+<tr style="text-align: left; color: #616161; font-size: 13px">
+<th style="padding: 10px 8px 10px 20px; font-weight: 600; border-bottom: 1px solid #E0E0E0; width: 32px"><span style="position: absolute; left: -9999px">Übernehmen</span></th>
+<th style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0">Position</th>
+<th style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0">Leistungszeitraum von</th>
+<th style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0">bis</th>
+<th style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0; text-align: right">Monate</th>
+<th style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0; text-align: right">Einzelpreis</th>
+<th style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0; text-align: right">Betrag</th>
+<th style="padding: 10px 20px 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0">Hinweis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="padding: 12px 8px 12px 20px; border-bottom: 1px solid #F0F0F0"><input type="checkbox" checked aria-label="Microsoft 365 übernehmen" style="width: 18px; height: 18px"></td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; font-weight: 600">Microsoft 365 Business Standard × 5</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">01.01.2027</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">31.12.2027</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">12</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">62,50 €</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right; font-weight: 600">750,00 €</td>
+<td style="padding: 12px 20px 12px 12px; border-bottom: 1px solid #F0F0F0; color: #616161">Folgezeitraum</td>
+</tr>
+<tr>
+<td style="padding: 12px 8px 12px 20px; border-bottom: 1px solid #F0F0F0"><input type="checkbox" checked aria-label="Domain huber-baeckerei.at übernehmen" style="width: 18px; height: 18px"></td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; font-weight: 600">Domain huber-baeckerei.at</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">15.03.2027</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">14.03.2028</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">12</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">24,00 €</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right; font-weight: 600">24,00 €</td>
+<td style="padding: 12px 20px 12px 12px; border-bottom: 1px solid #F0F0F0; color: #616161">Verlängerung im Voraus</td>
+</tr>
+<tr>
+<td style="padding: 12px 8px 12px 20px; border-bottom: 1px solid #F0F0F0"><input type="checkbox" checked aria-label="Cloud-Backup anteilig übernehmen" style="width: 18px; height: 18px"></td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; font-weight: 600">Cloud-Backup 100 GB</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">01.08.2026</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">31.12.2026</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">5</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">9,90 €</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right; font-weight: 600">49,50 €</td>
+<td style="padding: 12px 20px 12px 12px; border-bottom: 1px solid #F0F0F0"><span style="padding: 2px 8px; border-radius: 4px; background: #EBF3FC; color: #0F548C; font-size: 13px; font-weight: 600">anteilig nachverrechnet</span></td>
+</tr>
+<tr>
+<td style="padding: 12px 8px 12px 20px; border-bottom: 1px solid #F0F0F0"><input type="checkbox" checked aria-label="Cloud-Backup 2027 übernehmen" style="width: 18px; height: 18px"></td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; font-weight: 600">Cloud-Backup 100 GB</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">01.01.2027</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">31.12.2027</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">12</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">9,90 €</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right; font-weight: 600">118,80 €</td>
+<td style="padding: 12px 20px 12px 12px; border-bottom: 1px solid #F0F0F0; color: #616161">Folgezeitraum</td>
+</tr>
+<tr style="color: #707070">
+<td style="padding: 12px 8px 12px 20px; border-bottom: 1px solid #F0F0F0"><input type="checkbox" disabled aria-label="Domain huber.com nicht fällig" style="width: 18px; height: 18px"></td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; font-weight: 600">Domain huber.com</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">–</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">–</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">–</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">36,00 €</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">–</td>
+<td style="padding: 12px 20px 12px 12px; border-bottom: 1px solid #F0F0F0">nicht fällig, verrechnet bis 31.08.2028</td>
+</tr>
+<tr style="color: #707070">
+<td style="padding: 12px 8px 12px 20px"><input type="checkbox" disabled aria-label="SSL-Zertifikat entfällt" style="width: 18px; height: 18px"></td>
+<td style="padding: 12px; font-weight: 600; text-decoration: line-through">SSL-Zertifikat Wildcard</td>
+<td style="padding: 12px">–</td>
+<td style="padding: 12px">–</td>
+<td style="padding: 12px; text-align: right">–</td>
+<td style="padding: 12px; text-align: right">89,00 €</td>
+<td style="padding: 12px; text-align: right">–</td>
+<td style="padding: 12px 20px 12px 12px">entfällt, gekündigt zum 30.06.2026</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div style="border-top: 1px solid #E0E0E0; padding: 16px 20px; display: flex; justify-content: flex-end">
+<dl style="margin: 0; display: grid; grid-template-columns: auto auto; column-gap: 32px; row-gap: 6px; font-variant-numeric: tabular-nums; min-width: 260px">
+<dt style="color: #616161">Summe netto</dt><dd style="margin: 0; text-align: right">942,30 €</dd>
+<dt style="color: #616161">USt. 20 %</dt><dd style="margin: 0; text-align: right">188,46 €</dd>
+<dt style="font-weight: 700; padding-top: 6px; border-top: 1px solid #E0E0E0">Gesamt brutto</dt><dd style="margin: 0; text-align: right; font-weight: 700; padding-top: 6px; border-top: 1px solid #E0E0E0">1.130,76 €</dd>
+</dl>
+</div>
+</section>
+
+<footer style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<p style="margin: 0; color: #616161; max-width: 560px">Nach dem Erstellen werden die Zeiträume als Rechnungspositionen gespeichert. „Verrechnet bis“ ergibt sich daraus automatisch.</p>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<a href="02-kundendetail.html" style="display: inline-flex; align-items: center; height: 36px; box-sizing: border-box; padding: 0 16px; border-radius: 4px; border: 1px solid #C7C7C7; background: #FFFFFF; color: #242424; text-decoration: none">Abbrechen</a>
+<button type="button" style="height: 36px; padding: 0 16px; border-radius: 4px; border: 1px solid #C7C7C7; background: #FFFFFF; color: #242424; font: inherit">Als Entwurf speichern</button>
+<button type="button" style="height: 36px; padding: 0 16px; border-radius: 4px; border: 1px solid #0F6CBD; background: #0F6CBD; color: #FFFFFF; font: inherit; font-weight: 600">Rechnung erstellen</button>
+</div>
+</footer>
+
+</div>
+</div>
+
+</body>
+</html>
