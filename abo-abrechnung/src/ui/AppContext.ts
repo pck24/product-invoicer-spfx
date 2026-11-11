@@ -8,6 +8,7 @@ export interface IAppSettings {
   dateinamenMuster: string;
   vorlageUrl?: string;
   exportOrdner?: string;
+  ausgabeformat?: 'pdf' | 'docx';
 }
 
 export interface IAppServices {

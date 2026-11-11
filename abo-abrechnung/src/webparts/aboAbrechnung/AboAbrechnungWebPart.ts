@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { Version } from '@microsoft/sp-core-library';
-import { type IPropertyPaneConfiguration, PropertyPaneLabel, PropertyPaneTextField } from '@microsoft/sp-property-pane';
+import { type IPropertyPaneConfiguration, PropertyPaneDropdown, PropertyPaneLabel, PropertyPaneTextField } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { ThemeChangedEventArgs, ThemeProvider } from '@microsoft/sp-component-base';
 import type { MSGraphClientV3 } from '@microsoft/sp-http';
@@ -18,6 +18,7 @@ export interface IAboAbrechnungWebPartProps {
   dateinamenMuster: string;
   vorlageUrl?: string;
   exportOrdner?: string;
+  ausgabeformat?: 'pdf' | 'docx';
 }
 
 export default class AboAbrechnungWebPart extends BaseClientSideWebPart<IAboAbrechnungWebPartProps> {
@@ -51,7 +52,8 @@ export default class AboAbrechnungWebPart extends BaseClientSideWebPart<IAboAbre
           ustSatz: typeof p.ustSatz === 'number' ? p.ustSatz : Number(String(p.ustSatz).replace(',', '.')) || 20,
           dateinamenMuster: p.dateinamenMuster || '{rechnungsnummer}_{kundennummer}_{kundenname}',
           vorlageUrl: p.vorlageUrl,
-          exportOrdner: p.exportOrdner
+          exportOrdner: p.exportOrdner,
+          ausgabeformat: p.ausgabeformat === 'docx' ? 'docx' : 'pdf'
         },
         exportEnv: {
           sp: this._sp,
@@ -117,6 +119,14 @@ export default class AboAbrechnungWebPart extends BaseClientSideWebPart<IAboAbre
                   description: 'Serverrelative URL eines Ordners in einer Dokumentbibliothek, z. B. ' + site + '/Freigegebene Dokumente/Rechnungen',
                   onGetErrorMessage: (v: string) => this._checkPath(v, 'ordner'),
                   deferredValidationTime: 500
+                }),
+                PropertyPaneDropdown('ausgabeformat', {
+                  label: 'Ausgabeformat',
+                  selectedKey: this.properties.ausgabeformat || 'pdf',
+                  options: [
+                    { key: 'pdf', text: 'PDF (Umwandlung über Microsoft Graph)' },
+                    { key: 'docx', text: 'Word (.docx), ohne Umwandlung' }
+                  ]
                 }),
                 PropertyPaneTextField('dateinamenMuster', {
                   label: 'Dateiname',

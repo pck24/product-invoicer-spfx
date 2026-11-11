@@ -23,6 +23,7 @@ Verrechnung wiederkehrender Leistungen (Lizenzen, Domains, Cloud-Dienste) mit l�
 4. **PDF-Export einrichten** (Stift-Symbol am Webpart → Property Pane):
    - **Word-Vorlage:** serverrelative URL einer `.docx`, z. B. `/sites/JustElevate-Kunden/Freigegebene Dokumente/Vorlagen/Rechnungsvorlage.docx`. Als Ausgangspunkt dient `docs/Rechnungsvorlage-Beispiel.docx`.
    - **Export-Ordner:** serverrelative URL eines Ordners in einer Dokumentbibliothek.
+   - **Ausgabeformat:** PDF (Umwandlung über Graph, braucht Schritt 2) oder Word (.docx, ohne Umwandlung).
    - **Dateiname:** Muster mit `{rechnungsnummer}`, `{kundennummer}` und `{kundenname}`.
    - **USt-Satz** in Prozent.
 
@@ -59,5 +60,6 @@ Ablauf:
 - Alle Werte kommen fertig formatiert an: Datum `TT.MM.JJJJ`, Beträge `1.130,76 €`.
 - `{#positionen}` gehört in eine Tabellenzeile und wird pro Position wiederholt.
 - Unbekannte Platzhalter werden leer ersetzt und als Warnung gemeldet.
+- **Hintergrundbilder** (Briefpapier) müssen einen transparenten Hintergrund haben. Ein deckend weißes Bild hinter dem Text verdeckt bei der PDF-Umwandlung in SharePoint den gesamten Inhalt. `docs/make-transparent.py <bild.png> <ziel.png>` macht Weiß transparent (benötigt Pillow und NumPy).
 - Die Beispielvorlage baut auf `Briefpapier.dotx` auf. `docs/build-template.js` erzeugt sie neu:
   `node docs/build-template.js ../Briefpapier.dotx docs/Rechnungsvorlage-Beispiel.docx node_modules/pizzip`

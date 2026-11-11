@@ -14,6 +14,16 @@ Object.keys(zip.files)
   .filter((n) => n.startsWith('[trash]'))
   .forEach((n) => zip.remove(n));
 
+// Briefpapier-Bild durch Variante mit transparentem Hintergrund ersetzen: Das Original ist ein
+// deckend weißes A4-Bild "hinter dem Text". Die Online-PDF-Konvertierung zeichnet es über den Text
+// und verdeckt damit den gesamten Inhalt. Erzeugt mit docs/make-transparent.py.
+const transparent = require('path').join(__dirname, 'briefpapier-hintergrund.png');
+if (fs.existsSync(transparent)) {
+  const rels = zip.file('word/_rels/header1.xml.rels').asText();
+  const m = /Target="media\/([^"]+\.png)"/.exec(rels);
+  if (m) zip.file(`word/media/${m[1]}`, fs.readFileSync(transparent));
+}
+
 const doc = zip.file('word/document.xml').asText();
 const open = doc.substring(0, doc.indexOf('<w:body>') + '<w:body>'.length);
 const sectPr = doc.substring(doc.indexOf('<w:sectPr'), doc.indexOf('</w:body>'))

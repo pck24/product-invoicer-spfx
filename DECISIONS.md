@@ -126,6 +126,11 @@ Das Modell ist bewusst einfach: **Jede Position hat einen Jahrespreis und eigene
 - **Property Pane:** Statt `@pnp/spfx-property-controls` gibt es Textfelder für serverrelative URLs, die live prüfen, ob Datei bzw. Ordner existiert. Die Property Controls bringen eine eigene React-17-Abhängigkeit mit, das Projekt läuft auf React 18.
 - **Rechnungsnummernmuster** entfällt (siehe oben). Im Property Pane stehen also Vorlage, Export-Ordner, Dateiname und USt-Satz.
 - **Graph:** `MSGraphClientV3`. Die Site wird über `/sites/{host}:{serverRelativeUrl}` gefunden, das DriveItem über `/sites/{id}/lists/{listId}/items/{itemId}/driveItem`. Fehlt die Freigabe, erscheint ein Hinweis auf „API-Zugriff“.
+- **Leeres PDF aus SharePoint (behoben):** Das Briefpapier ist ein deckend weißes A4-Bild „hinter dem Text“ in der Kopfzeile. Die Online-Konvertierung zeichnet es über den Text und verdeckt so den gesamten Inhalt.
+  - Die Vorlage enthält deshalb eine Version des Bildes mit transparentem Hintergrund (`docs/briefpapier-hintergrund.png`, erzeugt mit `docs/make-transparent.py`). Auf Weiß sieht sie identisch aus.
+  - Außerdem entfernt die App beim Export Ordner-Einträge aus dem Archiv, und die Tabelleneigenschaften stehen in Schema-Reihenfolge.
+  - **Für eigene Vorlagen gilt:** Hintergrundbilder müssen transparent sein.
+- **Ausgabeformat** (Vorschlag vom 11.11.2026): Im Property Pane wählbar zwischen „PDF“ (Standard, über Graph) und „Word (.docx)“. Word legt das befüllte Dokument direkt ab, ohne Graph und ohne Freigabe.
 - **Beispielvorlage** `docs/Rechnungsvorlage-Beispiel.docx` auf Basis von `Briefpapier.dotx`. Das Hintergrundbild liegt in der Kopfzeile. Die Ränder sind oben 4,0 cm und unten 3,5 cm, damit Logo und Fußzeile frei bleiben. Neu erzeugen lässt sie sich mit `docs/build-template.js`.
 
 ## Toolchain

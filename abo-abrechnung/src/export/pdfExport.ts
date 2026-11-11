@@ -19,6 +19,8 @@ export interface IExportConfig {
   vorlageUrl?: string;
   exportOrdner?: string;
   dateinamenMuster: string;
+  /** 'pdf' (Standard, über Graph umgewandelt) oder 'docx' (befülltes Word-Dokument, ohne Graph) */
+  ausgabeformat?: 'pdf' | 'docx';
 }
 
 export interface IExportResult {
@@ -71,7 +73,8 @@ export async function exportPdf(
     },
     variante === 'ohneKosten' ? '_Leistungsuebersicht' : ''
   );
-  const pdfName = `${name}.pdf`;
+  const asDocx = config.ausgabeformat === 'docx';
+  const pdfName = `${name}.${asDocx ? 'docx' : 'pdf'}`;
   const pdfUrl = `${folderUrl}/${pdfName}`;
   const absolute = (serverRelative: string): string => `https://${env.siteHost}${encodeURI(serverRelative)}`;
 
@@ -86,6 +89,12 @@ export async function exportPdf(
   const filled = fillTemplate(template, buildTemplateData(input, variante));
 
   const folder = sp.web.getFolderByServerRelativePath(folderUrl);
+  if (asDocx) {
+    // Word-Ausgabe: befülltes Dokument direkt ablegen, keine Konvertierung
+    progress('Dokument wird abgelegt …');
+    const saved = await folder.files.addUsingPath(pdfName, filled.content, { Overwrite: options.overwrite });
+    return { url: absolute(saved.ServerRelativeUrl), name: pdfName, warnings: filled.warnings, existed: false };
+  }
   const tmpName = `_tmp_${name}.docx`;
   progress('Dokument wird hochgeladen …');
   const tmp = await folder.files.addUsingPath(tmpName, filled.content, { Overwrite: true });

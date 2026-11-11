@@ -52,14 +52,14 @@ export function useExport(): IExportRun {
           await repo.setPdfLink(input.rechnung.id, res.url, res.name);
           await reload();
         }
-        notify(res.existed ? 'PDF war bereits abgelegt' : 'PDF abgelegt', 'success', { text: res.name, url: res.url });
+        notify(res.existed ? 'Datei war bereits abgelegt' : 'Datei abgelegt', 'success', { text: res.name, url: res.url });
         if (res.warnings.length) notify(`Unbekannte Platzhalter in der Vorlage (leer ersetzt): ${res.warnings.join(', ')}`, 'warning');
         return true;
       } catch (e) {
         if (e instanceof ExportNotConfiguredError) {
-          notify('PDF-Export nicht eingerichtet: Word-Vorlage und Export-Ordner fehlen.', 'warning', { text: 'Einstellungen öffnen', onClick: openSettings });
+          notify('Export nicht eingerichtet: Word-Vorlage und Export-Ordner fehlen.', 'warning', { text: 'Einstellungen öffnen', onClick: openSettings });
         } else {
-          notify(`PDF-Export fehlgeschlagen: ${exportErrorText(e)}`, 'error');
+          notify(`Export fehlgeschlagen: ${exportErrorText(e)}`, 'error');
         }
         return false;
       } finally {

@@ -54,12 +54,12 @@ export function InvoiceActions({ rechnung, onEditDraft, onShow, onDeleted, label
         <MenuPopover onClick={(e) => e.stopPropagation()}>
           <MenuList>
             {onShow && <MenuItem onClick={() => onShow(rechnung)}>Anzeigen</MenuItem>}
-            {rechnung.pdfUrl && <MenuItem onClick={() => window.open(rechnung.pdfUrl as string, '_blank')}>PDF öffnen</MenuItem>}
+            {rechnung.pdfUrl && <MenuItem onClick={() => window.open(rechnung.pdfUrl as string, '_blank')}>Export öffnen</MenuItem>}
             <MenuItem disabled={!!exp.busy || !data} onClick={() => data && exp.run(data, rechnung.id, 'mitKosten', true)}>
-              PDF mit Kosten exportieren
+              Mit Kosten exportieren
             </MenuItem>
             <MenuItem disabled={!!exp.busy || !data} onClick={() => data && exp.run(data, rechnung.id, 'ohneKosten', true)}>
-              PDF ohne Kosten exportieren
+              Ohne Kosten exportieren
             </MenuItem>
             {rechnung.status === 'Entwurf' && <MenuItem onClick={() => onEditDraft(rechnung)}>Entwurf bearbeiten</MenuItem>}
             {rechnung.status !== 'Storniert' && <MenuDivider />}
