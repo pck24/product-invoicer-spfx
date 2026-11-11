@@ -23,10 +23,11 @@ import { useShared } from '../styles';
 export interface IInvoicesProps {
   onOpenKunde: (kundeId: number) => void;
   onEditDraft: (rechnung: IRechnung) => void;
+  onShow: (rechnung: IRechnung) => void;
 }
 
 /** Tab "Rechnungen": alle Rechnungen mit Jahresfilter und Aktionen. */
-export function Invoices({ onOpenKunde, onEditDraft }: IInvoicesProps): React.ReactElement {
+export function Invoices({ onOpenKunde, onEditDraft, onShow }: IInvoicesProps): React.ReactElement {
   const shared = useShared();
   const { data } = useData();
   const [jahr, setJahr] = React.useState('alle');
@@ -90,14 +91,30 @@ export function Invoices({ onOpenKunde, onEditDraft }: IInvoicesProps): React.Re
             {rows.map((r) => {
               const n = data.rechnungspositionen.filter((l) => l.rechnungId === r.id).length;
               return (
-                <TableRow key={r.id}>
-                  <TableCell className={shared.strong}>{r.nummer}</TableCell>
+                <TableRow key={r.id} className={shared.clickableRow} onClick={() => onShow(r)}>
+                  <TableCell className={shared.strong}>
+                    <Link
+                      as="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onShow(r);
+                      }}
+                    >
+                      {r.nummer}
+                    </Link>
+                  </TableCell>
                   <TableCell className={shared.num} style={{ textAlign: 'left' }}>
                     {formatDate(r.rechnungsdatum)}
                   </TableCell>
                   <TableCell>
                     {r.kundeId ? (
-                      <Link as="button" onClick={() => onOpenKunde(r.kundeId as number)}>
+                      <Link
+                        as="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenKunde(r.kundeId as number);
+                        }}
+                      >
                         {kundeName(r.kundeId)}
                       </Link>
                     ) : (
@@ -112,7 +129,7 @@ export function Invoices({ onOpenKunde, onEditDraft }: IInvoicesProps): React.Re
                     <StatusBadge color={RECHNUNG_STATUS[r.status]} text={r.status} />
                   </TableCell>
                   <TableCell>
-                    <InvoiceActions rechnung={r} onEditDraft={onEditDraft} />
+                    <InvoiceActions rechnung={r} onEditDraft={onEditDraft} onShow={onShow} />
                   </TableCell>
                 </TableRow>
               );

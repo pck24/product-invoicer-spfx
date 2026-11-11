@@ -30,7 +30,6 @@ import { KuendigenDialog } from '../components/KuendigenDialog';
 import { KundeDrawer } from '../components/KundeDrawer';
 import { PositionDrawer } from '../components/PositionDrawer';
 import { StatusBadge } from '../components/StatusBadge';
-import { Timeline } from '../components/Timeline';
 import { useShared } from '../styles';
 import { useSummaries } from './CustomerList';
 
@@ -43,9 +42,10 @@ export interface ICustomerDetailProps {
   kundeId: number;
   onFolgerechnung: () => void;
   onEditDraft: (rechnung: IRechnung) => void;
+  onShow: (rechnung: IRechnung) => void;
 }
 
-export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft }: ICustomerDetailProps): React.ReactElement {
+export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft, onShow }: ICustomerDetailProps): React.ReactElement {
   const s = useStyles();
   const shared = useShared();
   const { repo } = useApp();
@@ -60,8 +60,6 @@ export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft }: ICusto
   if (!summary || !data) return <p>Kunde nicht gefunden.</p>;
   const { kunde } = summary;
   const today = todayIso();
-  const ids = summary.positionen.map((p) => p.id);
-  const lines = data.billedLines.filter((l) => l.positionId !== null && ids.indexOf(l.positionId) >= 0);
   const proposals = summary.proposals.filter((p) => showEnded || !isGekuendigt(p.position, today));
   const rechnungen = data.rechnungen
     .filter((r) => r.kundeId === kundeId)
@@ -225,8 +223,18 @@ export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft }: ICusto
               {rechnungen.map((r) => {
                 const n = data.rechnungspositionen.filter((l) => l.rechnungId === r.id).length;
                 return (
-                  <TableRow key={r.id}>
-                    <TableCell className={shared.strong}>{r.nummer}</TableCell>
+                  <TableRow key={r.id} className={shared.clickableRow} onClick={() => onShow(r)}>
+                    <TableCell className={shared.strong}>
+                      <Link
+                        as="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onShow(r);
+                        }}
+                      >
+                        {r.nummer}
+                      </Link>
+                    </TableCell>
                     <TableCell>{formatDate(r.rechnungsdatum)}</TableCell>
                     <TableCell>
                       {n} {n === 1 ? 'Zeitraum' : 'Zeiträume'}
@@ -236,12 +244,7 @@ export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft }: ICusto
                       <StatusBadge color={RECHNUNG_STATUS[r.status]} text={r.status} />
                     </TableCell>
                     <TableCell style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      {r.pdfUrl && (
-                        <Link href={r.pdfUrl} target="_blank" rel="noreferrer">
-                          PDF öffnen
-                        </Link>
-                      )}
-                      <InvoiceActions rechnung={r} onEditDraft={onEditDraft} />
+                      <InvoiceActions rechnung={r} onEditDraft={onEditDraft} onShow={onShow} />
                     </TableCell>
                   </TableRow>
                 );
@@ -250,9 +253,6 @@ export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft }: ICusto
           </Table>
         </div>
       </section>
-
-      {/* Zeitstrahl nur, wenn es verrechnete Zeiträume gibt */}
-      {lines.some((l) => l.status === 'Entwurf' || l.status === 'Erstellt') && <Timeline proposals={proposals} lines={lines} today={today} />}
 
       <KundeDrawer open={kundeDrawer} kunde={kunde} onClose={() => setKundeDrawer(false)} />
       <PositionDrawer open={positionDrawer.open} kunde={kunde} position={positionDrawer.position} onClose={() => setPositionDrawer({ open: false })} />

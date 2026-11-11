@@ -1,9 +1,7 @@
 import * as React from 'react';
 import { Tooltip, makeStyles, mergeClasses, shorthands, tokens } from '@fluentui/react-components';
 import { addDaysIso, addMonthsIso, diffDays, formatDate, maxIso, minIso } from '../../billing/dates';
-import { formatEuro } from '../../billing/money';
-import { IPositionProposal, isActiveLine } from '../../billing/proposal';
-import { IBilledLine, ISODate } from '../../billing/types';
+import { ISODate } from '../../billing/types';
 import { useShared } from '../styles';
 
 const useStyles = makeStyles({
@@ -17,62 +15,50 @@ const useStyles = makeStyles({
   year: { position: 'absolute', top: 0, paddingLeft: '6px', ...shorthands.borderLeft('1px', 'solid', tokens.colorNeutralStroke2) },
   track: { flex: 1, position: 'relative', height: '22px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: '3px' },
   seg: { position: 'absolute', top: '3px', bottom: '3px', borderRadius: '3px', boxSizing: 'border-box', minWidth: '2px' },
-  billed: { backgroundColor: tokens.colorBrandBackground },
-  proposal: {
-    backgroundColor: tokens.colorPaletteYellowBackground2,
-    ...shorthands.border('1px', 'dashed', tokens.colorPaletteMarigoldBorderActive)
-  },
-  endedRow: { color: tokens.colorNeutralForeground4, '& [data-billed]': { opacity: 0.45 } },
+  current: { backgroundColor: tokens.colorBrandBackground },
+  other: { backgroundColor: tokens.colorBrandBackground2, ...shorthands.border('1px', 'solid', tokens.colorBrandStroke2) },
+  proposal: { backgroundColor: tokens.colorPaletteYellowBackground2, ...shorthands.border('1px', 'dashed', tokens.colorPaletteMarigoldBorderActive) },
+  endedRow: { color: tokens.colorNeutralForeground4 },
   marker: { position: 'absolute', width: '2px' },
-  today: { top: '-4px', bottom: '-4px', backgroundColor: tokens.colorPaletteRedBackground3 },
+  date: { top: '-4px', bottom: '-4px', backgroundColor: tokens.colorPaletteRedBackground3 },
   cancel: { top: 0, bottom: 0, backgroundColor: tokens.colorNeutralForeground3 }
 });
 
-export interface ITimelineProps {
-  proposals: IPositionProposal[];
-  lines: IBilledLine[];
-  today: ISODate;
-}
+export type BarKind = 'current' | 'other' | 'proposal';
 
-interface IBar {
+export interface ITimelineBar {
   key: string;
   von: ISODate;
   bis: ISODate;
-  kind: 'billed' | 'proposal';
+  kind: BarKind;
   tooltip: string;
 }
 
-export function Timeline({ proposals, lines, today }: ITimelineProps): React.ReactElement {
+export interface ITimelineRow {
+  key: string;
+  title: string;
+  /** Kündigungsdatum */
+  ende: ISODate | null;
+  bars: ITimelineBar[];
+}
+
+export interface ITimelineProps {
+  rows: ITimelineRow[];
+  /** rote Markierung, z. B. Rechnungsdatum */
+  markerDate: ISODate;
+  markerLabel: string;
+  /** Legendentexte je Balkenart (nur vorkommende Arten werden gezeigt) */
+  labels: { [k in BarKind]?: string };
+}
+
+/** Jahresraster mit einer Spur je Zeile. */
+export function Timeline({ rows, markerDate, markerLabel, labels }: ITimelineProps): React.ReactElement {
   const s = useStyles();
   const shared = useShared();
 
-  const rows = proposals.map((p) => {
-    const bars: IBar[] = [];
-    for (const l of lines) {
-      if (l.positionId !== p.position.id || !l.von || !l.bis || !isActiveLine(l)) continue;
-      bars.push({
-        key: `b${l.rechnungId}-${l.von}`,
-        von: l.von,
-        bis: l.bis,
-        kind: 'billed',
-        tooltip: `${l.rechnungsnummer || ''}${l.status === 'Entwurf' ? ' (Entwurf)' : ''} · ${formatDate(l.von)} – ${formatDate(l.bis)} · ${formatEuro(l.betragCent || 0)}`
-      });
-    }
-    for (const seg of p.status === 'faellig' ? p.segments : []) {
-      bars.push({
-        key: `p${seg.von}`,
-        von: seg.von,
-        bis: seg.bis,
-        kind: 'proposal',
-        tooltip: `Vorschlag · ${formatDate(seg.von)} – ${formatDate(seg.bis)} · ${formatEuro(seg.betragCent)}`
-      });
-    }
-    return { p, bars };
-  });
-
   // Zeitraum: bis zu 5 Jahre, endend mit dem spätesten Datum
-  let min: ISODate = today;
-  let max: ISODate = addMonthsIso(today, 12); // immer etwas Zukunft zeigen
+  let min: ISODate = markerDate;
+  let max: ISODate = addMonthsIso(markerDate, 12);
   for (const r of rows) {
     for (const b of r.bars) {
       min = minIso(min, b.von);
@@ -87,29 +73,31 @@ export function Timeline({ proposals, lines, today }: ITimelineProps): React.Rea
   const pct = (d: ISODate): number => Math.max(0, Math.min(100, (diffDays(rangeStart, d) / total) * 100));
   const years: number[] = [];
   for (let y = startYear; y <= endYear; y++) years.push(y);
+  const kinds = (['current', 'other', 'proposal'] as BarKind[]).filter((k) => labels[k] && rows.some((r) => r.bars.some((b) => b.kind === k)));
+  const hasCancel = rows.some((r) => !!r.ende);
 
   return (
     <section className={shared.card} aria-labelledby="timeline-title">
       <div className={shared.cardHeader}>
         <h2 id="timeline-title" className={shared.h2}>
-          Zeitleiste der verrechneten Zeiträume
+          Zeitleiste
         </h2>
         <div className={s.legend}>
+          {kinds.map((k) => (
+            <span key={k} className={s.legendItem}>
+              <span aria-hidden="true" className={mergeClasses(s.swatch, s[k])} />
+              {labels[k]}
+            </span>
+          ))}
+          {hasCancel && (
+            <span className={s.legendItem}>
+              <span aria-hidden="true" className={s.cancel} style={{ width: '2px', height: '14px' }} />
+              Kündigung
+            </span>
+          )}
           <span className={s.legendItem}>
-            <span aria-hidden="true" className={mergeClasses(s.swatch, s.billed)} />
-            verrechnet
-          </span>
-          <span className={s.legendItem}>
-            <span aria-hidden="true" className={mergeClasses(s.swatch, s.proposal)} />
-            Vorschlag Folgerechnung
-          </span>
-          <span className={s.legendItem}>
-            <span aria-hidden="true" className={s.cancel} style={{ width: '2px', height: '14px' }} />
-            Kündigung
-          </span>
-          <span className={s.legendItem}>
-            <span aria-hidden="true" className={s.today} style={{ width: '2px', height: '14px' }} />
-            heute
+            <span aria-hidden="true" className={s.date} style={{ width: '2px', height: '14px' }} />
+            {markerLabel}
           </span>
         </div>
       </div>
@@ -125,16 +113,15 @@ export function Timeline({ proposals, lines, today }: ITimelineProps): React.Rea
               ))}
             </div>
           </div>
-          {rows.map(({ p, bars }) => {
-            const ended = !!p.position.ende && p.position.ende < today;
+          {rows.map((r) => {
+            const ended = !!r.ende && r.ende < markerDate;
             return (
-              <div key={p.position.id} className={mergeClasses(s.row, ended && s.endedRow)}>
-                <span className={s.label} title={p.position.title}>
-                  {p.position.title}
-                  {ended ? ' (gekündigt)' : ''}
+              <div key={r.key} className={mergeClasses(s.row, ended && s.endedRow)}>
+                <span className={s.label} title={r.title}>
+                  {r.title}
                 </span>
                 <div className={s.track}>
-                  {bars
+                  {r.bars
                     .filter((b) => b.bis >= rangeStart && b.von < rangeEnd)
                     .map((b) => {
                       const left = pct(b.von);
@@ -144,17 +131,16 @@ export function Timeline({ proposals, lines, today }: ITimelineProps): React.Rea
                           <div
                             tabIndex={0}
                             role="img"
-                            data-billed={b.kind === 'billed' ? '' : undefined}
-                            className={mergeClasses(s.seg, b.kind === 'billed' ? s.billed : s.proposal)}
+                            className={mergeClasses(s.seg, s[b.kind])}
                             style={{ left: `${left}%`, width: `calc(${width}% - 2px)` }}
                           />
                         </Tooltip>
                       );
                     })}
-                  {p.position.ende && p.position.ende >= rangeStart && p.position.ende < rangeEnd && (
-                    <div aria-hidden="true" className={mergeClasses(s.marker, s.cancel)} style={{ left: `${pct(addDaysIso(p.position.ende, 1))}%` }} />
+                  {r.ende && r.ende >= rangeStart && r.ende < rangeEnd && (
+                    <div aria-hidden="true" className={mergeClasses(s.marker, s.cancel)} style={{ left: `${pct(addDaysIso(r.ende, 1))}%` }} />
                   )}
-                  <div aria-hidden="true" className={mergeClasses(s.marker, s.today)} style={{ left: `${pct(today)}%` }} />
+                  <div aria-hidden="true" className={mergeClasses(s.marker, s.date)} style={{ left: `${pct(markerDate)}%` }} />
                 </div>
               </div>
             );
@@ -163,4 +149,9 @@ export function Timeline({ proposals, lines, today }: ITimelineProps): React.Rea
       </div>
     </section>
   );
+}
+
+/** Kurztext für Tooltips: "RE-1 · 01.01.2027 – 31.12.2027 · 24,00 €" */
+export function barTooltip(prefix: string, von: ISODate, bis: ISODate, betrag: string): string {
+  return `${prefix ? `${prefix} · ` : ''}${formatDate(von)} – ${formatDate(bis)} · ${betrag}`;
 }

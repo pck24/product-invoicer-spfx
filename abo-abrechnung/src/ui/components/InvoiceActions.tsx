@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger } from '@fluentui/react-components';
+import { Button, Menu, MenuDivider, MenuItem, MenuList, MenuPopover, MenuTrigger } from '@fluentui/react-components';
 import { MoreHorizontal20Regular } from '@fluentui/react-icons';
 import { IRechnung } from '../../data/mapping';
 import { useApp } from '../AppContext';
@@ -9,17 +9,24 @@ import { ConfirmDialog, IConfirmRequest } from './ConfirmDialog';
 export interface IInvoiceActionsProps {
   rechnung: IRechnung;
   onEditDraft: (rechnung: IRechnung) => void;
+  /** "Anzeigen" im Menü (nicht im Anzeige-Screen selbst) */
+  onShow?: (rechnung: IRechnung) => void;
+  /** nach dem Löschen eines Entwurfs (z. B. zurück zum Kunden) */
+  onDeleted?: () => void;
+  /** Beschriftung des Menüknopfs; ohne = nur "…" */
+  label?: string;
 }
 
-/** Zeilenmenü einer Rechnung: PDF öffnen, Entwurf bearbeiten/löschen, Stornieren. */
-export function InvoiceActions({ rechnung, onEditDraft }: IInvoiceActionsProps): React.ReactElement {
+/** Menü einer Rechnung: Anzeigen, PDF, Entwurf bearbeiten/löschen, Stornieren. */
+export function InvoiceActions({ rechnung, onEditDraft, onShow, onDeleted, label }: IInvoiceActionsProps): React.ReactElement {
   const { repo } = useApp();
   const { reload, notify } = useData();
   const [confirm, setConfirm] = React.useState<IConfirmRequest | undefined>();
 
-  const run = async (action: () => Promise<void>, ok: string): Promise<void> => {
+  const run = async (action: () => Promise<void>, ok: string, after?: () => void): Promise<void> => {
     try {
       await action();
+      if (after) after();
       await reload();
       notify(ok);
     } catch (e) {
@@ -27,16 +34,27 @@ export function InvoiceActions({ rechnung, onEditDraft }: IInvoiceActionsProps):
     }
   };
 
+  // Klicks (auch aus Menü- und Dialog-Portalen) nicht an eine klickbare Tabellenzeile weiterreichen
   return (
-    <>
-      <Menu>
+    <span onClick={(e) => e.stopPropagation()}>
+      <Menu positioning="below-end">
         <MenuTrigger disableButtonEnhancement>
-          <Button appearance="subtle" icon={<MoreHorizontal20Regular />} aria-label={`Aktionen für ${rechnung.nummer}`} />
+          <Button
+            appearance={label ? 'secondary' : 'subtle'}
+            icon={<MoreHorizontal20Regular />}
+            aria-label={`Aktionen für ${rechnung.nummer}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {label}
+          </Button>
         </MenuTrigger>
-        <MenuPopover>
+        <MenuPopover onClick={(e) => e.stopPropagation()}>
           <MenuList>
+            {onShow && <MenuItem onClick={() => onShow(rechnung)}>Anzeigen</MenuItem>}
             {rechnung.pdfUrl && <MenuItem onClick={() => window.open(rechnung.pdfUrl as string, '_blank')}>PDF öffnen</MenuItem>}
+            <MenuItem disabled>Als PDF exportieren (folgt)</MenuItem>
             {rechnung.status === 'Entwurf' && <MenuItem onClick={() => onEditDraft(rechnung)}>Entwurf bearbeiten</MenuItem>}
+            {rechnung.status !== 'Storniert' && <MenuDivider />}
             {rechnung.status === 'Entwurf' && (
               <MenuItem
                 onClick={() =>
@@ -44,7 +62,7 @@ export function InvoiceActions({ rechnung, onEditDraft }: IInvoiceActionsProps):
                     title: 'Entwurf löschen',
                     message: `Der Entwurf ${rechnung.nummer} und seine Zeiträume werden endgültig gelöscht.`,
                     confirmText: 'Löschen',
-                    onConfirm: () => run(() => repo.deleteEntwurf(rechnung.id), `Entwurf ${rechnung.nummer} gelöscht`)
+                    onConfirm: () => run(() => repo.deleteEntwurf(rechnung.id), `Entwurf ${rechnung.nummer} gelöscht`, onDeleted)
                   })
                 }
               >
@@ -65,11 +83,10 @@ export function InvoiceActions({ rechnung, onEditDraft }: IInvoiceActionsProps):
                 Stornieren
               </MenuItem>
             )}
-            {rechnung.status === 'Storniert' && !rechnung.pdfUrl && <MenuItem disabled>Keine Aktionen</MenuItem>}
           </MenuList>
         </MenuPopover>
       </Menu>
       <ConfirmDialog request={confirm} onClose={() => setConfirm(undefined)} />
-    </>
+    </span>
   );
 }

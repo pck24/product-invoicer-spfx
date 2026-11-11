@@ -20,6 +20,7 @@ import { AppContext, IAppServices, useApp } from './AppContext';
 import { DataProvider, errorText, useData } from './DataContext';
 import { CustomerDetail } from './screens/CustomerDetail';
 import { CustomerList, HomeTab } from './screens/CustomerList';
+import { InvoiceView } from './screens/InvoiceView';
 import { InvoiceWizard } from './screens/InvoiceWizard';
 import { Invoices } from './screens/Invoices';
 import { IRechnung } from '../data/mapping';
@@ -44,7 +45,13 @@ const useStyles = makeStyles({
   skeleton: { display: 'flex', flexDirection: 'column', gap: '16px' }
 });
 
-export type Route = { name: 'home'; tab: HomeTab } | { name: 'kunde'; kundeId: number } | { name: 'rechnung'; kundeId: number; rechnungId?: number };
+export type Route =
+  | { name: 'home'; tab: HomeTab }
+  | { name: 'kunde'; kundeId: number }
+  /** Rechnung erstellen bzw. Entwurf bearbeiten */
+  | { name: 'rechnung'; kundeId: number; rechnungId?: number }
+  /** Rechnung anzeigen */
+  | { name: 'anzeige'; kundeId: number; rechnungId: number };
 
 function LoadingSkeleton(): React.ReactElement {
   const s = useStyles();
@@ -75,6 +82,10 @@ function Screens(): React.ReactElement {
   const editDraft = (r: IRechnung): void => {
     if (r.kundeId) setRoute({ name: 'rechnung', kundeId: r.kundeId, rechnungId: r.id });
   };
+  const show = (r: IRechnung): void => {
+    if (r.kundeId) setRoute({ name: 'anzeige', kundeId: r.kundeId, rechnungId: r.id });
+  };
+  const anzeige = route.name === 'anzeige' ? data.rechnungen.filter((r) => r.id === route.rechnungId)[0] : undefined;
 
   return (
     <>
@@ -95,7 +106,15 @@ function Screens(): React.ReactElement {
             <>
               <BreadcrumbDivider />
               <BreadcrumbItem>
-                <BreadcrumbButton current>{route.rechnungId ? 'Entwurf' : 'Rechnung'}</BreadcrumbButton>
+                <BreadcrumbButton current>{route.rechnungId ? 'Entwurf bearbeiten' : 'Neue Rechnung'}</BreadcrumbButton>
+              </BreadcrumbItem>
+            </>
+          )}
+          {route.name === 'anzeige' && (
+            <>
+              <BreadcrumbDivider />
+              <BreadcrumbItem>
+                <BreadcrumbButton current>{anzeige ? `Rechnung ${anzeige.nummer}` : 'Rechnung'}</BreadcrumbButton>
               </BreadcrumbItem>
             </>
           )}
@@ -106,20 +125,28 @@ function Screens(): React.ReactElement {
           tab={route.tab}
           onTab={(tab) => setRoute({ name: 'home', tab })}
           onOpen={(kundeId) => setRoute({ name: 'kunde', kundeId })}
-          rechnungen={<Invoices onOpenKunde={(kundeId) => setRoute({ name: 'kunde', kundeId })} onEditDraft={editDraft} />}
+          rechnungen={<Invoices onOpenKunde={(kundeId) => setRoute({ name: 'kunde', kundeId })} onEditDraft={editDraft} onShow={show} />}
         />
       )}
       {route.name === 'kunde' && (
-        <CustomerDetail kundeId={route.kundeId} onFolgerechnung={() => setRoute({ name: 'rechnung', kundeId: route.kundeId })} onEditDraft={editDraft} />
+        <CustomerDetail
+          kundeId={route.kundeId}
+          onFolgerechnung={() => setRoute({ name: 'rechnung', kundeId: route.kundeId })}
+          onEditDraft={editDraft}
+          onShow={show}
+        />
       )}
       {route.name === 'rechnung' && (
         <InvoiceWizard
           key={`${route.kundeId}-${route.rechnungId || 'neu'}`}
           kundeId={route.kundeId}
           rechnungId={route.rechnungId}
-          onDone={() => setRoute({ name: 'kunde', kundeId: route.kundeId })}
+          onDone={(rechnungId) => setRoute({ name: 'anzeige', kundeId: route.kundeId, rechnungId })}
           onCancel={() => setRoute({ name: 'kunde', kundeId: route.kundeId })}
         />
+      )}
+      {route.name === 'anzeige' && (
+        <InvoiceView rechnungId={route.rechnungId} onEditDraft={editDraft} onBack={() => setRoute({ name: 'kunde', kundeId: route.kundeId })} />
       )}
     </>
   );

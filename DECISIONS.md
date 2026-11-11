@@ -100,7 +100,15 @@ Das Modell ist bewusst einfach: **Jede Position hat einen Jahrespreis und eigene
 - **Entwurf löschen** (mit Bestätigung) löscht Positionen und Rechnung.
 - **Erstellte Rechnungen** sind schreibgeschützt. Das Menü bietet für sie nur PDF und Stornieren.
 - **Tab „Rechnungen“:** alle Rechnungen mit Jahresfilter, Kundenlink, Status und demselben Aktionsmenü wie in der Rechnungshistorie.
-- **Zeitstrahl** im Kundendetail steht unter der Rechnungshistorie und erscheint erst, wenn es verrechnete Zeiträume gibt. Er zeigt die Vertragslaufzeit als hellblauen Balken, darüber die verrechneten Zeiträume dunkelblau und fällige Folgezeiträume gelb gestrichelt.
+- **Screen „Rechnung anzeigen“** (Vorgabe vom 11.11.2026). Er öffnet sich mit einem Klick auf eine Rechnung in der Rechnungshistorie oder im Tab „Rechnungen“ und nach dem Speichern im Rechnungsdialog. Aufbau von oben nach unten:
+  1. Kopf mit Nummer, Status, Kunde, Rechnungsdatum, Vorgänger und Netto, rechts oben ein Menü „Aktionen“ mit allen Aktionen
+  2. Positionen der Rechnung mit Summenblock
+  3. Zeitleiste
+- **Zeitleiste** nur noch in diesem Screen (aus dem Kundendetail entfernt):
+  - eine Spur je Position der Rechnung
+  - diese Rechnung dunkelblau, andere Rechnungen derselben Position hellblau
+  - Kündigungsmarke, rote Markierung „Rechnungsdatum“ statt „heute“
+- **Aktionsmenü:** Anzeigen, PDF öffnen, „Als PDF exportieren“ (bis Phase 5 deaktiviert), Entwurf bearbeiten/löschen, Stornieren.
 - Die Spalte „Nächster Zeitraum“ in der Positionsliste ist auf deinen Wunsch entfallen.
 
 ## Toolchain

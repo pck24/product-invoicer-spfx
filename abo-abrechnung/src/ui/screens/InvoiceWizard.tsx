@@ -88,7 +88,8 @@ export interface IInvoiceWizardProps {
   kundeId: number;
   /** Entwurf, der weiterbearbeitet wird */
   rechnungId?: number;
-  onDone: () => void;
+  /** nach dem Speichern, mit der Id der Rechnung */
+  onDone: (rechnungId: number) => void;
   onCancel: () => void;
 }
 
@@ -211,11 +212,10 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
         summeNettoCent: draftTotals(rows, positionen, fresh, settings.ustSatz).nettoCent
       };
       const lines = toSaveLines(rows, positionen, fresh);
-      if (rechnungId) await repo.updateEntwurf(rechnungId, header, lines);
-      else await repo.createRechnung(header, lines);
+      const saved = rechnungId ? await repo.updateEntwurf(rechnungId, header, lines) : await repo.createRechnung(header, lines);
       await reload();
       notify(status === 'Entwurf' ? `Entwurf ${header.nummer} gespeichert` : `Rechnung ${header.nummer} erstellt`);
-      onDone();
+      onDone(saved.id);
     } catch (e) {
       setSaveError(errorText(e));
     } finally {
