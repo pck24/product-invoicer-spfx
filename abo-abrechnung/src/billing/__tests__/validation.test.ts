@@ -2,7 +2,7 @@ import { proposeInvoice } from '../proposal';
 import { hasErrors, IDraftLine, validateInvoice } from '../validation';
 import { billed, HUBER_DATUM, huberLines, huberPositions, pos } from './fixtures';
 
-const p1 = pos({ id: 1, title: 'M365', beginn: '2024-01-01', ende: '2027-09-30' });
+const p1 = pos({ id: 1, title: 'M365', ende: '2027-09-30' });
 const base = { invoiceNumber: 'RE-2027-001', existingInvoiceNumbers: ['RE-2026-004'], positions: [p1], billedLines: [billed(1, '2026-01-01', '2026-12-31', 'Erstellt', 'RE-2026-004')] };
 const line = (von: string, bis: string, key = 'a'): IDraftLine => ({ key, positionId: 1, title: 'M365', von, bis });
 
@@ -32,24 +32,23 @@ describe('validateInvoice', () => {
     expect(proposal.positions.filter((p) => p.position.id === 3)[0].status).toBe('neu');
   });
 
-  it('Von vor Vertragsbeginn ist ein Fehler (erste Verrechnung)', () => {
-    const issues = validateInvoice({ ...base, billedLines: [], lines: [line('2023-12-01', '2023-12-31')] });
-    expect(hasErrors(issues)).toBe(true);
-    expect(issues[0].message).toContain('Vertragsbeginn');
+  it('erste Verrechnung: Zeitraum frei wählbar, keine Untergrenze und keine Lücken-Warnung', () => {
+    expect(validateInvoice({ ...base, billedLines: [], lines: [line('2025-06-15', '2026-07-14')] })).toEqual([]);
+    expect(validateInvoice({ ...base, billedLines: [], lines: [line('2019-12-01', '2019-12-31')] })).toEqual([]);
   });
 
-  it('erste Verrechnung: Zeitraum frei wählbar, keine Lücken-Warnung', () => {
-    expect(validateInvoice({ ...base, billedLines: [], lines: [line('2025-06-15', '2026-07-14')] })).toEqual([]);
+  it('Bis nach dem Kündigungsdatum ist auch bei der ersten Verrechnung ein Fehler', () => {
+    expect(hasErrors(validateInvoice({ ...base, billedLines: [], lines: [line('2027-01-01', '2027-12-31')] }))).toBe(true);
   });
 
   it('Bis vor Von ist ein Fehler', () => {
     expect(hasErrors(validateInvoice({ ...base, lines: [line('2027-03-01', '2027-02-01')] }))).toBe(true);
   });
 
-  it('Bis nach dem Leistungsende ist ein Fehler', () => {
+  it('Bis nach dem Kündigungsdatum ist ein Fehler', () => {
     const issues = validateInvoice({ ...base, lines: [line('2027-01-01', '2027-12-31')] });
     expect(issues.map((i) => i.severity)).toEqual(['error']);
-    expect(issues[0].message).toContain('Leistungsende');
+    expect(issues[0].message).toContain('Kündigungsdatum');
   });
 
   it('bestehende Rechnungsnummer ist ein Fehler (Groß-/Kleinschreibung egal)', () => {

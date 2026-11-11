@@ -50,10 +50,10 @@ export function summarizeCustomer(
   const letzte = rechnungen
     .filter((r) => r.status !== 'Storniert')
     .sort((a, b) => (b.rechnungsdatum || '').localeCompare(a.rechnungsdatum || '') || b.id - a.id)[0];
-  const laufend = proposal.positions.filter((p) => p.status === 'faellig' && p.nextStart <= today);
-  const neu = proposal.positions.filter((p) => p.status === 'neu');
+  const laufend = proposal.positions.filter((p) => p.status === 'faellig' && !!p.nextStart && p.nextStart <= today);
+  const neu = proposal.positions.filter((p) => p.status === 'neu' && !isGekuendigt(p.position, today));
   const laufendePositionen = proposal.positions.filter((p) => p.status === 'faellig' || p.status === 'nichtFaellig');
-  const termine = laufendePositionen.map((p) => p.nextStart).sort();
+  const termine = laufendePositionen.map((p) => p.nextStart as ISODate).sort();
   let netto = 0;
   for (const p of laufend) for (const s of p.segments) netto += s.betragCent;
 
@@ -114,9 +114,9 @@ export function monateText(monateX100: number): string {
 /** Text für die Live-Vorschau im Positions-Drawer. */
 export function previewText(position: IPosition, lines: IBilledLine[]): string {
   const start = nextStart(position, lines);
+  if (start === null) return 'Noch nicht verrechnet. Den ersten Zeitraum legst du bei der Rechnung frei fest; danach schließen die Folgezeiträume automatisch an.';
   const r = proposeForPosition(position, lines, start);
-  if (r.status === 'entfaellt') return 'Kein offener Zeitraum mehr – die Position ist bis zum Leistungsende verrechnet.';
-  if (r.status === 'neu') return `Noch nicht verrechnet. Den ersten Zeitraum legst du bei der Rechnung frei fest (ab ${formatDate(position.beginn)}); danach schließen die Folgezeiträume automatisch an.`;
+  if (r.status === 'entfaellt') return 'Kein offener Zeitraum mehr – die Position ist bis zum Kündigungsdatum verrechnet.';
   const seg = r.segments[0];
   return `Nächster Zeitraum: ${formatDate(seg.von)} – ${formatDate(seg.bis)} (${monateText(seg.monateX100)}, ${formatEuro(seg.betragCent)}).`;
 }

@@ -12,16 +12,6 @@ const useStyles = makeStyles({
   swatch: { width: '18px', height: '10px', borderRadius: '2px', boxSizing: 'border-box' },
   body: { padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: '10px', '@media (max-width: 640px)': { minWidth: '600px' } },
   row: { display: 'flex', gap: '16px', alignItems: 'center' },
-  contract: {
-    position: 'absolute',
-    top: '3px',
-    bottom: '3px',
-    borderRadius: '3px',
-    boxSizing: 'border-box',
-    backgroundColor: tokens.colorBrandBackground2,
-    ...shorthands.border('1px', 'solid', tokens.colorBrandStroke2)
-  },
-  contractSwatch: { backgroundColor: tokens.colorBrandBackground2, ...shorthands.border('1px', 'solid', tokens.colorBrandStroke2) },
   label: { width: '180px', flex: 'none', fontWeight: tokens.fontWeightSemibold, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   years: { flex: 1, position: 'relative', height: '18px', color: tokens.colorNeutralForeground3, fontSize: '12px' },
   year: { position: 'absolute', top: 0, paddingLeft: '6px', ...shorthands.borderLeft('1px', 'solid', tokens.colorNeutralStroke2) },
@@ -84,7 +74,6 @@ export function Timeline({ proposals, lines, today }: ITimelineProps): React.Rea
   let min: ISODate = today;
   let max: ISODate = addMonthsIso(today, 12); // immer etwas Zukunft zeigen
   for (const r of rows) {
-    min = minIso(min, r.p.position.beginn);
     for (const b of r.bars) {
       min = minIso(min, b.von);
       max = maxIso(max, b.bis);
@@ -106,10 +95,6 @@ export function Timeline({ proposals, lines, today }: ITimelineProps): React.Rea
           Zeitleiste der verrechneten Zeiträume
         </h2>
         <div className={s.legend}>
-          <span className={s.legendItem}>
-            <span aria-hidden="true" className={mergeClasses(s.swatch, s.contractSwatch)} />
-            Vertrag, noch nicht verrechnet
-          </span>
           <span className={s.legendItem}>
             <span aria-hidden="true" className={mergeClasses(s.swatch, s.billed)} />
             verrechnet
@@ -149,20 +134,6 @@ export function Timeline({ proposals, lines, today }: ITimelineProps): React.Rea
                   {ended ? ' (gekündigt)' : ''}
                 </span>
                 <div className={s.track}>
-                  <Tooltip
-                    content={`Vertrag ${formatDate(p.position.beginn)} – ${p.position.ende ? formatDate(p.position.ende) : 'offen'}`}
-                    relationship="label"
-                  >
-                    <div
-                      tabIndex={0}
-                      role="img"
-                      className={s.contract}
-                      style={{
-                        left: `${pct(p.position.beginn)}%`,
-                        width: `${(p.position.ende ? pct(addDaysIso(p.position.ende, 1)) : 100) - pct(p.position.beginn)}%`
-                      }}
-                    />
-                  </Tooltip>
                   {bars
                     .filter((b) => b.bis >= rangeStart && b.von < rangeEnd)
                     .map((b) => {

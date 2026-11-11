@@ -8,7 +8,10 @@ Das Modell ist bewusst einfach: **Jede Position hat einen Jahrespreis und eigene
 
 - **Keine Modi** (Stichtag/Laufzeit), **keine Preisbasis**, **kein Abrechnungsmonat** beim Kunden und **kein** Feld „Verrechnen bis“.
 - **Betrag** = Jahrespreis × Menge × Monate / 12, kaufmännisch auf Cent gerundet. Ein Zeitraum über 24 Monate kostet also den doppelten Jahrespreis.
-- **Erste Rechnung einer Position:** Es gibt keinen Vorschlag. Von und Bis werden frei gewählt. Einzige Einschränkung: „Von“ darf nicht vor dem Vertragsbeginn liegen.
+- **Kein Vertragszeitraum** (Vorgabe vom 11.11.2026). Eine Position wird nur mit Bezeichnung, Menge, Jahrespreis und Laufzeit erfasst.
+  - Ein Ende gibt es nur über „Kündigen“ (Spalte `Ende`, angezeigt als „Gekündigt zum“). „Kündigung aufheben“ setzt es zurück.
+  - Die Spalte `Beginn` ist bei neu eingerichteten Listen keine Pflicht mehr. In bereits angelegten Listen ist sie Pflicht, deshalb wird beim Anlegen einer Position das Erfassungsdatum eingetragen. Gelesen wird sie nicht.
+- **Erste Rechnung einer Position:** Es gibt keinen Vorschlag. Von und Bis werden frei gewählt, ohne Untergrenze. Nur „Bis“ darf nicht nach einem Kündigungsdatum liegen.
 - **Folgerechnung:** Jede Position schließt nahtlos an „verrechnet bis“ an und läuft genau eine Laufzeit lang (`LaufzeitMonate`, Standard 12). Pro Position wird ein Zeitraum vorgeschlagen.
 - **Monatsraster:** Die Grenzen werden ab dem ersten verrechneten Tag gerechnet. So wandern Monatsenden nicht. Beispiel: Start 31.01., Laufzeit 1 Monat ergibt 31.01.–27.02., 28.02.–30.03., 31.03.–29.04.
 - **Fällig** ist ein Folgezeitraum, wenn er bereits läuft oder spätestens **3 Monate nach dem Rechnungsdatum** beginnt (`VORLAUF_MONATE`). Fällige Zeiträume sind im Vorschlag angehakt.

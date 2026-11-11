@@ -58,8 +58,9 @@ export const LISTS: IListDef[] = [
       { name: 'Menge', displayName: 'Menge', type: 'Number', defaultValue: '1' },
       { name: 'Preis', displayName: 'Jahrespreis', type: 'Currency' },
       { name: 'LaufzeitMonate', displayName: 'Laufzeit (Monate)', type: 'Number', min: 1, decimals: 0, defaultValue: '12' },
-      { name: 'Beginn', displayName: 'Beginn', type: 'DateTime', required: true },
-      { name: 'Ende', displayName: 'Ende', type: 'DateTime' }
+      // Erfassungsdatum (nicht in der Oberfläche); bleibt für bestehende Listen, in denen die Spalte Pflicht ist
+      { name: 'Beginn', displayName: 'Erfasst am', type: 'DateTime' },
+      { name: 'Ende', displayName: 'Gekündigt zum', type: 'DateTime' }
     ]
   },
   {

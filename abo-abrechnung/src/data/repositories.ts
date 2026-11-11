@@ -3,6 +3,7 @@ import '@pnp/sp/webs';
 import '@pnp/sp/lists';
 import '@pnp/sp/items';
 import { IList } from '@pnp/sp/lists';
+import { todayIso } from '../billing/dates';
 import { RechnungsStatus } from '../billing/types';
 import { LIST } from './lists';
 import {
@@ -22,7 +23,8 @@ import {
   rechnungFromItem,
   rechnungToItem,
   rechnungspositionFromItem,
-  rechnungspositionToItem
+  rechnungspositionToItem,
+  toSpDate
 } from './mapping';
 
 /** Obergrenze je Abfrage; für eine Einzelunternehmer-Abrechnung reichlich. */
@@ -70,7 +72,8 @@ export class Repository {
       await this.list(LIST.Positionen).items.getById(id).update(item);
       return { ...position, id };
     }
-    const added: SPItem = await this.list(LIST.Positionen).items.add(item);
+    // "Beginn" ist in früher angelegten Listen eine Pflichtspalte → Erfassungsdatum eintragen
+    const added: SPItem = await this.list(LIST.Positionen).items.add({ ...item, Beginn: toSpDate(todayIso()) });
     return { ...position, id: added.Id };
   }
 

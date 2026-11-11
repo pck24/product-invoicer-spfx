@@ -59,7 +59,7 @@ export function buildRows(positions: IPosition[], lines: IBilledLine[], rechnung
       checked: r.status === 'faellig',
       touched: false,
       betragOverrideCent: null,
-      nextStart: r.nextStart
+      nextStart: r.nextStart || undefined
     };
     return row;
   });
@@ -97,7 +97,7 @@ export function calcRow(row: IDraftRow, positions: IPosition[], lines: IBilledLi
   let hinweis: string;
   if (row.kind === 'entfaellt') hinweis = p.ende ? `entfällt, gekündigt zum ${formatDate(p.ende)}` : 'entfällt';
   else if (row.kind === 'neu') hinweis = 'erste Verrechnung – Zeitraum frei wählen';
-  else if (anteilig) hinweis = 'anteilig bis Leistungsende';
+  else if (anteilig) hinweis = 'anteilig bis Kündigungsdatum';
   else if (row.kind === 'nichtFaellig') hinweis = `nicht fällig, beginnt ${formatDate(row.nextStart)}`;
   else hinweis = 'Folgezeitraum';
   return {

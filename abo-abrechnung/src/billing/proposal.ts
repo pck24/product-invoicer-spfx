@@ -28,7 +28,8 @@ export interface ISegment {
 export interface IPositionProposal {
   position: IPosition;
   verrechnetBis: ISODate | null;
-  nextStart: ISODate;
+  /** nächster offener Tag; null = noch nie verrechnet */
+  nextStart: ISODate | null;
   status: PositionStatus;
   /** nächster Zeitraum (höchstens einer); auch bei nichtFaellig vorhanden, damit er dazugenommen werden kann */
   segments: ISegment[];
@@ -57,9 +58,10 @@ export function verrechnetBis(positionId: number, lines: IBilledLine[]): ISODate
   return max;
 }
 
-export function nextStart(position: IPosition, lines: IBilledLine[]): ISODate {
+/** Tag nach "verrechnet bis"; null, wenn die Position noch nie verrechnet wurde. */
+export function nextStart(position: IPosition, lines: IBilledLine[]): ISODate | null {
   const vb = verrechnetBis(position.id, lines);
-  return vb === null ? position.beginn : addDaysIso(vb, 1);
+  return vb === null ? null : addDaysIso(vb, 1);
 }
 
 /** Erster verrechneter Tag; Anker des Monatsrasters, damit Monatsenden nicht wandern. */
@@ -80,7 +82,7 @@ export function hinweisFor(art: Art): string {
     case 'Folgezeitraum':
       return 'Folgezeitraum';
     case 'Anteilig':
-      return 'anteilig bis Leistungsende';
+      return 'anteilig bis Kündigungsdatum';
     case 'Nachverrechnung':
       return 'Nachverrechnung';
     default:
@@ -106,10 +108,10 @@ export function makeSegment(position: IPosition, von: ISODate, bis: ISODate, art
 
 export function proposeForPosition(position: IPosition, lines: IBilledLine[], rechnungsdatum: ISODate): IPositionProposal {
   const vb = verrechnetBis(position.id, lines);
-  const start = vb === null ? position.beginn : addDaysIso(vb, 1);
+  if (vb === null) return { position, verrechnetBis: null, nextStart: null, status: 'neu', segments: [] };
+  const start = addDaysIso(vb, 1);
   const base = { position, verrechnetBis: vb, nextStart: start };
   if (position.ende && start > position.ende) return { ...base, status: 'entfaellt', segments: [] };
-  if (vb === null) return { ...base, status: 'neu', segments: [] };
 
   // Raster am ersten verrechneten Tag ausrichten (verhindert Drift am Monatsende)
   const laufzeit = Math.max(1, Math.round(position.laufzeitMonate || 12));

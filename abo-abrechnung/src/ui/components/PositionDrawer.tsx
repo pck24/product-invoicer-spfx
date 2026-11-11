@@ -16,15 +16,12 @@ import {
   Text
 } from '@fluentui/react-components';
 import { Dismiss24Regular } from '@fluentui/react-icons';
-import { formatDate, isIsoDate } from '../../billing/dates';
 import { formatAmount, parseEuro } from '../../billing/money';
-import { verrechnetBis } from '../../billing/proposal';
 import { IPosition } from '../../billing/types';
 import { IKunde, IPositionItem } from '../../data/mapping';
 import { useApp } from '../AppContext';
 import { errorText, useData } from '../DataContext';
 import { previewText } from '../derive';
-import { DateField } from './DateField';
 import { useShared } from '../styles';
 
 export interface IPositionDrawerProps {
@@ -39,8 +36,6 @@ interface IForm {
   menge: string;
   preis: string;
   laufzeit: string;
-  beginn: string;
-  ende: string;
 }
 
 function toForm(p?: IPositionItem): IForm {
@@ -48,9 +43,7 @@ function toForm(p?: IPositionItem): IForm {
     title: p ? p.title : '',
     menge: p ? String(p.menge).replace('.', ',') : '1',
     preis: p ? formatAmount(p.jahrespreisCent) : '',
-    laufzeit: p ? String(p.laufzeitMonate) : '12',
-    beginn: p ? p.beginn : '',
-    ende: p && p.ende ? p.ende : ''
+    laufzeit: p ? String(p.laufzeitMonate) : '12'
   };
 }
 
@@ -87,7 +80,6 @@ export function PositionDrawer({ open, kunde, position, onClose }: IPositionDraw
     () => (data && position ? data.billedLines.filter((l) => l.positionId === position.id) : []),
     [data, position]
   );
-  const vb = position ? verrechnetBis(position.id, lines) : null;
 
   // Validierung
   const preisCent = parseEuro(form.preis);
@@ -97,19 +89,10 @@ export function PositionDrawer({ open, kunde, position, onClose }: IPositionDraw
     title: !form.title.trim() ? 'Bezeichnung ist erforderlich.' : undefined,
     menge: !(menge > 0) ? 'Menge muss größer als 0 sein.' : undefined,
     preis: preisCent === null || preisCent < 0 ? 'Jahrespreis im Format 24,00 eingeben.' : undefined,
-    laufzeit: !(laufzeit >= 1) || Math.round(laufzeit) !== laufzeit ? 'Ganze Monate ab 1 eingeben.' : undefined,
-    beginn: !isIsoDate(form.beginn) ? 'Beginn ist erforderlich.' : undefined,
-    ende:
-      form.ende && !isIsoDate(form.ende)
-        ? 'Ungültiges Datum.'
-        : form.ende && form.ende < form.beginn
-          ? 'Ende liegt vor dem Beginn.'
-          : form.ende && vb && form.ende < vb
-            ? `Bereits verrechnet bis ${formatDate(vb)} – Ende darf nicht davor liegen.`
-            : undefined
+    laufzeit: !(laufzeit >= 1) || Math.round(laufzeit) !== laufzeit ? 'Ganze Monate ab 1 eingeben.' : undefined
   };
   const valid = Object.keys(errors).every((k) => !errors[k]);
-  const show = (k: string): string | undefined => (touched || k === 'ende' ? errors[k] : undefined);
+  const show = (k: string): string | undefined => (touched ? errors[k] : undefined);
 
   const candidate: IPosition | undefined = valid
     ? {
@@ -118,8 +101,8 @@ export function PositionDrawer({ open, kunde, position, onClose }: IPositionDraw
         menge,
         jahrespreisCent: preisCent as number,
         laufzeitMonate: laufzeit,
-        beginn: form.beginn,
-        ende: form.ende || null
+        // Kündigung wird nur über "Kündigen" gesetzt und beim Bearbeiten beibehalten
+        ende: position ? position.ende : null
       }
     : undefined;
   const preview = candidate ? previewText(candidate, lines) : '';
@@ -194,10 +177,6 @@ export function PositionDrawer({ open, kunde, position, onClose }: IPositionDraw
             </Field>
           </div>
 
-          <div className={shared.formRow}>
-            <DateField label="Beginn" required value={form.beginn} onChange={(v) => set({ beginn: v })} validationMessage={show('beginn')} />
-            <DateField label="Ende (optional)" value={form.ende} onChange={(v) => set({ ende: v })} validationMessage={show('ende')} />
-          </div>
 
           {preview && (
             <MessageBar intent="info" layout="multiline">

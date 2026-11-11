@@ -12,9 +12,7 @@ export interface IPosition {
   jahrespreisCent: number;
   /** Länge eines Folgezeitraums in Monaten (Standard 12). */
   laufzeitMonate: number;
-  /** Vertragsbeginn; vor diesem Tag wird nichts verrechnet. */
-  beginn: ISODate;
-  /** Leistungsende; null = aktiv, unbegrenzt */
+  /** Leistungsende (nur über "Kündigen" gesetzt); null = aktiv */
   ende: ISODate | null;
 }
 

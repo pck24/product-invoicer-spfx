@@ -42,7 +42,7 @@ import { useShared } from '../styles';
 
 const useStyles = makeStyles({
   fields: { display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-start', '& > *': { flex: '1 1 220px' }, '& label': { fontWeight: tokens.fontWeightSemibold } },
-  dateCell: { minWidth: '150px' },
+  dateCell: { width: '140px', paddingLeft: '4px', paddingRight: '4px' },
   amount: { width: '110px', '& input': { textAlign: 'right' } },
   disabledRow: { color: tokens.colorNeutralForeground4 },
   totals: {
@@ -301,8 +301,8 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
               <TableRow>
                 <TableHeaderCell style={{ width: '44px' }} aria-label="Übernehmen" />
                 <TableHeaderCell>Position</TableHeaderCell>
-                <TableHeaderCell>Von</TableHeaderCell>
-                <TableHeaderCell>Bis</TableHeaderCell>
+                <TableHeaderCell className={s.dateCell}>Von</TableHeaderCell>
+                <TableHeaderCell className={s.dateCell}>Bis</TableHeaderCell>
                 <TableHeaderCell className={mergeClasses(shared.num, shared.numHead)}>Monate</TableHeaderCell>
                 <TableHeaderCell className={mergeClasses(shared.num, shared.numHead)}>Jahrespreis</TableHeaderCell>
                 <TableHeaderCell className={mergeClasses(shared.num, shared.numHead)}>Betrag</TableHeaderCell>

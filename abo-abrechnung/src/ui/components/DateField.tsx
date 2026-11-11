@@ -45,6 +45,8 @@ export function DateField({ label, value, onChange, required, validationMessage,
       strings={STRINGS}
       placeholder="TT.MM.JJJJ"
       aria-label={bare ? label : undefined}
+      // kompakt in Tabellenzellen: Platz für "TT.MM.JJJJ" plus Kalendersymbol
+      style={bare ? { width: '132px', minWidth: '132px' } : undefined}
     />
   );
   if (bare) return picker;

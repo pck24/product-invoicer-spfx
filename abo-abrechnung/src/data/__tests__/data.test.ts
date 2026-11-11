@@ -72,10 +72,10 @@ describe('Datumsfelder', () => {
 
 describe('Mapping', () => {
   it('Position hin und zurück, Jahrespreis in Cent', () => {
-    const item = positionToItem({ kundeId: 3, title: 'Cloud-Backup', menge: 1, jahrespreisCent: 11880, laufzeitMonate: 12, beginn: '2026-08-01', ende: null });
+    const item = positionToItem({ kundeId: 3, title: 'Cloud-Backup', menge: 1, jahrespreisCent: 11880, laufzeitMonate: 12, ende: null });
     expect(item.Preis).toBe(118.8);
     const back = positionFromItem({ ...item, Id: 7, Beginn: '2026-07-31T22:00:00Z' });
-    expect(back).toMatchObject({ id: 7, kundeId: 3, jahrespreisCent: 11880, laufzeitMonate: 12, beginn: '2026-08-01', ende: null });
+    expect(back).toMatchObject({ id: 7, kundeId: 3, jahrespreisCent: 11880, laufzeitMonate: 12, ende: null });
   });
 
   it('verknüpft Rechnungspositionen mit dem Rechnungsstatus', () => {

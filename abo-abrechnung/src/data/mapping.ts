@@ -63,7 +63,7 @@ export function toCent(euro: number | null | undefined): number {
 }
 
 export const KUNDE_FIELDS = ['Id', 'Title', 'Kundennummer', 'Adresse', 'Aktiv'];
-export const POSITION_FIELDS = ['Id', 'Title', 'KundeId', 'Menge', 'Preis', 'LaufzeitMonate', 'Beginn', 'Ende'];
+export const POSITION_FIELDS = ['Id', 'Title', 'KundeId', 'Menge', 'Preis', 'LaufzeitMonate', 'Ende'];
 export const RECHNUNG_FIELDS = ['Id', 'Title', 'KundeId', 'Rechnungsdatum', 'VorgaengerId', 'Status', 'SummeNettoCent', 'PdfLink'];
 export const RECHNUNGSPOSITION_FIELDS = ['Id', 'Title', 'RechnungId', 'PositionId', 'Von', 'Bis', 'Monate', 'Menge', 'EinzelpreisCent', 'BetragCent', 'Art'];
 
@@ -89,7 +89,6 @@ export function positionFromItem(i: SPItem): IPositionItem {
     menge: i.Menge === null || i.Menge === undefined ? 1 : i.Menge,
     jahrespreisCent: toCent(i.Preis),
     laufzeitMonate: i.LaufzeitMonate || 12,
-    beginn: fromSpDate(i.Beginn) || '',
     ende: fromSpDate(i.Ende)
   };
 }
@@ -101,7 +100,6 @@ export function positionToItem(p: Omit<IPositionItem, 'id'>): SPItem {
     Menge: p.menge,
     Preis: p.jahrespreisCent / 100,
     LaufzeitMonate: p.laufzeitMonate,
-    Beginn: toSpDate(p.beginn),
     Ende: toSpDate(p.ende)
   };
 }

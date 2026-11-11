@@ -3,7 +3,7 @@ import { billed, pos } from './fixtures';
 
 describe('verrechnetBis / nextStart', () => {
   it('ignoriert stornierte Rechnungen', () => {
-    const p = pos({ id: 1, beginn: '2025-01-01' });
+    const p = pos({ id: 1 });
     const lines = [billed(1, '2025-01-01', '2025-12-31'), billed(1, '2026-01-01', '2026-12-31', 'Storniert')];
     expect(verrechnetBis(1, lines)).toBe('2025-12-31');
     expect(nextStart(p, lines)).toBe('2026-01-01');
@@ -13,20 +13,20 @@ describe('verrechnetBis / nextStart', () => {
     expect(verrechnetBis(1, [billed(1, '2025-01-01', '2025-12-31', 'Entwurf')])).toBe('2025-12-31');
   });
 
-  it('ohne Rechnung ist nextStart der Beginn', () => {
-    expect(nextStart(pos({ id: 1, beginn: '2026-05-10' }), [])).toBe('2026-05-10');
+  it('ohne Rechnung gibt es keinen nächsten Tag (erster Zeitraum frei)', () => {
+    expect(nextStart(pos({ id: 1 }), [])).toBeNull();
   });
 });
 
 describe('Folgezeitraum schließt an', () => {
   it('individueller erster Zeitraum (13 Monate), danach 12 Monate', () => {
-    const p = pos({ id: 1, jahrespreisCent: 1200, beginn: '2026-06-15' });
+    const p = pos({ id: 1, jahrespreisCent: 1200 });
     const r = proposeForPosition(p, [billed(1, '2026-06-15', '2027-07-14')], '2027-06-17');
     expect(r.segments[0]).toMatchObject({ von: '2027-07-15', bis: '2028-07-14', monateX100: 1200, betragCent: 1200 });
   });
 
   it('Rechnung am 17.06.: Zeitraum ab 01.03. (bereits begonnen) wird vorgeschlagen', () => {
-    const p = pos({ id: 1, beginn: '2026-03-01' });
+    const p = pos({ id: 1 });
     const r = proposeForPosition(p, [billed(1, '2026-03-01', '2027-02-28')], '2027-06-17');
     expect(r.segments[0]).toMatchObject({ von: '2027-03-01', bis: '2028-02-29', monateX100: 1200 });
   });
@@ -78,7 +78,7 @@ describe('Kündigung mitten im Zeitraum', () => {
 
 describe('Lücke über mehrere Jahre', () => {
   it('es wird genau ein Zeitraum ab „verrechnet bis“ vorgeschlagen, ohne Lücke', () => {
-    const p = pos({ id: 1, jahrespreisCent: 1200, beginn: '2020-01-01' });
+    const p = pos({ id: 1, jahrespreisCent: 1200 });
     const r = proposeForPosition(p, [billed(1, '2020-01-01', '2023-12-31')], '2027-01-08');
     expect(r.segments).toHaveLength(1);
     expect(r.segments[0]).toMatchObject({ von: '2024-01-01', bis: '2024-12-31', betragCent: 1200 });
@@ -102,7 +102,7 @@ describe('Schaltjahr', () => {
   });
 
   it('Start am 29.02.: Raster bleibt am ersten verrechneten Tag ausgerichtet', () => {
-    const p = pos({ id: 1, beginn: '2024-02-29' });
+    const p = pos({ id: 1 });
     const lines = [billed(1, '2024-02-29', '2025-02-27'), billed(1, '2025-02-28', '2026-02-27')];
     const r = proposeForPosition(p, lines, '2026-01-08');
     expect(r.segments[0]).toMatchObject({ von: '2026-02-28', bis: '2027-02-27', monateX100: 1200 });
@@ -111,7 +111,7 @@ describe('Schaltjahr', () => {
 
 describe('Monatsende (31.01. plus 1 Monat)', () => {
   it('Laufzeit 1 Monat ab 31.01.: kein Drift', () => {
-    const p = pos({ id: 1, jahrespreisCent: 1200, laufzeitMonate: 1, beginn: '2027-01-31' });
+    const p = pos({ id: 1, jahrespreisCent: 1200, laufzeitMonate: 1 });
     const r1 = proposeForPosition(p, [billed(1, '2027-01-31', '2027-02-27')], '2027-02-01');
     expect(r1.segments[0]).toMatchObject({ von: '2027-02-28', bis: '2027-03-30', monateX100: 100, betragCent: 100 });
     const r2 = proposeForPosition(p, [billed(1, '2027-01-31', '2027-02-27'), billed(1, '2027-02-28', '2027-03-30')], '2027-02-01');

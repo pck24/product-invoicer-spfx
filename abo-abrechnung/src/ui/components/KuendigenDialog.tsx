@@ -42,10 +42,8 @@ export function KuendigenDialog({ position, onClose }: IKuendigenDialogProps): R
     ? undefined
     : !isIsoDate(ende)
       ? 'Datum eingeben.'
-      : ende < position.beginn
-        ? 'Ende liegt vor dem Beginn.'
-        : vb && ende < vb
-          ? `Bereits verrechnet bis ${formatDate(vb)} – Ende darf nicht davor liegen.`
+      : vb && ende < vb
+          ? `Bereits verrechnet bis ${formatDate(vb)} – das Kündigungsdatum darf nicht davor liegen.`
           : undefined;
 
   const save = async (): Promise<void> => {
@@ -70,7 +68,13 @@ export function KuendigenDialog({ position, onClose }: IKuendigenDialogProps): R
         <DialogBody>
           <DialogTitle>Position kündigen</DialogTitle>
           <DialogContent>
-            <DateField label={`Leistungsende für „${position ? position.title : ''}“`} value={ende} onChange={setEnde} validationMessage={fehler} />
+            <DateField
+              label={`„${position ? position.title : ''}“ gekündigt zum`}
+              hint="Bis zu diesem Tag wird höchstens noch verrechnet."
+              value={ende}
+              onChange={setEnde}
+              validationMessage={fehler}
+            />
             {error && (
               <MessageBar intent="error">
                 <MessageBarBody>{error}</MessageBarBody>

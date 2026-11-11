@@ -85,6 +85,17 @@ export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft }: ICusto
       }
     });
 
+  const kuendigungAufheben = async (p: IPositionItem): Promise<void> => {
+    try {
+      const { id, ...rest } = p;
+      await repo.savePosition({ ...rest, ende: null }, id);
+      await reload();
+      notify(`Kündigung von ${p.title} aufgehoben`);
+    } catch (e) {
+      notify(errorText(e), 'error');
+    }
+  };
+
   return (
     <>
       <header className={mergeClasses(shared.card, shared.cardPadded)}>
@@ -126,7 +137,6 @@ export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft }: ICusto
                 <TableHeaderCell className={mergeClasses(shared.num, shared.numHead)}>Menge</TableHeaderCell>
                 <TableHeaderCell className={mergeClasses(shared.num, shared.numHead)}>Jahrespreis</TableHeaderCell>
                 <TableHeaderCell>Laufzeit</TableHeaderCell>
-                <TableHeaderCell>Vertrag von – bis</TableHeaderCell>
                 <TableHeaderCell>Verrechnet bis</TableHeaderCell>
                 <TableHeaderCell aria-label="Aktionen" style={{ width: '48px' }} />
               </TableRow>
@@ -134,7 +144,7 @@ export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft }: ICusto
             <TableBody>
               {proposals.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className={shared.muted}>
+                  <TableCell colSpan={6} className={shared.muted}>
                     Noch keine Positionen. Mit „+ Position“ anlegen.
                   </TableCell>
                 </TableRow>
@@ -151,18 +161,15 @@ export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft }: ICusto
                           <StatusBadge color="brand" text="neu" size="small" />
                         </span>
                       )}
-                      {ended && (
+                      {pos.ende && (
                         <span className={s.badge}>
-                          <StatusBadge color="informative" text="gekündigt" size="small" />
+                          <StatusBadge color="informative" text={`gekündigt zum ${formatDate(pos.ende)}`} size="small" />
                         </span>
                       )}
                     </TableCell>
                     <TableCell className={shared.num}>{String(pos.menge).replace('.', ',')}</TableCell>
                     <TableCell className={shared.num}>{preisText(pos)}</TableCell>
                     <TableCell>{laufzeitText(pos.laufzeitMonate)}</TableCell>
-                    <TableCell className={shared.num} style={{ textAlign: 'left' }}>
-                      {formatDate(pos.beginn)} – {pos.ende ? formatDate(pos.ende) : <span className={shared.muted}>offen</span>}
-                    </TableCell>
                     <TableCell className={shared.num} style={{ textAlign: 'left' }}>
                       {p.verrechnetBis ? formatDate(p.verrechnetBis) : <span className={shared.muted}>noch nie</span>}
                     </TableCell>
@@ -174,7 +181,8 @@ export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft }: ICusto
                         <MenuPopover>
                           <MenuList>
                             <MenuItem onClick={() => setPositionDrawer({ open: true, position: pos })}>Bearbeiten</MenuItem>
-                            <MenuItem onClick={() => setKuendigen(pos)}>Kündigen</MenuItem>
+                            <MenuItem onClick={() => setKuendigen(pos)}>{pos.ende ? 'Kündigungsdatum ändern' : 'Kündigen'}</MenuItem>
+                            {pos.ende && <MenuItem onClick={() => kuendigungAufheben(pos)}>Kündigung aufheben</MenuItem>}
                             {!hasAnyLine(pos.id) && <MenuItem onClick={() => loeschen(pos)}>Löschen</MenuItem>}
                           </MenuList>
                         </MenuPopover>
