@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Kundendetail</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0F6CBD}a:hover{color:#0C3B5E}
+</style>
+</head>
+<body>
+
+
+<div style="min-height: 100vh; box-sizing: border-box; background: #F5F5F5; padding: 24px 16px; font-family: 'Segoe UI', Inter, system-ui, sans-serif; color: #242424; font-size: 14px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px">
+
+<nav aria-label="Pfad" style="display: flex; gap: 8px; align-items: center; color: #616161">
+<a href="01-kundenuebersicht.html" style="text-decoration: none">Kunden</a>
+<span aria-hidden="true">›</span>
+<span style="color: #242424">Bäckerei Huber GmbH</span>
+</nav>
+
+<header style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 8px; padding: 20px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+<h1 style="margin: 0; font-size: 22px; font-weight: 600">Bäckerei Huber GmbH</h1>
+<span style="padding: 2px 8px; border-radius: 4px; background: #F0F0F0; color: #424242; font-size: 13px; font-variant-numeric: tabular-nums">K-1001</span>
+</div>
+<p style="margin: 0; color: #616161">Abrechnung jährlich zum 01.01. · Hauptstraße 12, 4020 Linz</p>
+</div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<button type="button" style="height: 36px; padding: 0 14px; border-radius: 4px; border: 1px solid #C7C7C7; background: #FFFFFF; color: #242424; font: inherit">Bearbeiten</button>
+<button type="button" style="height: 36px; padding: 0 14px; border-radius: 4px; border: 1px solid #C7C7C7; background: #FFFFFF; color: #242424; font: inherit">+ Position</button>
+<a href="03-folgerechnung.html" style="display: inline-flex; align-items: center; height: 36px; box-sizing: border-box; padding: 0 16px; border-radius: 4px; border: 1px solid #0F6CBD; background: #0F6CBD; color: #FFFFFF; font-weight: 600; text-decoration: none">Folgerechnung erstellen</a>
+</div>
+</header>
+
+<section style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 8px; display: flex; flex-direction: column">
+<div style="padding: 16px 20px; border-bottom: 1px solid #E0E0E0; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap">
+<h2 style="margin: 0; font-size: 16px; font-weight: 600">Positionen</h2>
+<label style="display: flex; align-items: center; gap: 8px; color: #424242"><input type="checkbox" checked style="width: 16px; height: 16px">Gekündigte anzeigen</label>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 980px; border-collapse: collapse">
+<thead>
+<tr style="text-align: left; color: #616161; font-size: 13px">
+<th style="padding: 10px 20px; font-weight: 600; border-bottom: 1px solid #E0E0E0">Produkt</th>
+<th style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0; text-align: right">Menge</th>
+<th style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0; text-align: right">Preis</th>
+<th style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0">Laufzeit</th>
+<th style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0">Vertrag von – bis</th>
+<th style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0">Verrechnet bis</th>
+<th style="padding: 10px 20px; font-weight: 600; border-bottom: 1px solid #E0E0E0">Nächster Zeitraum</th>
+</tr>
+</thead>
+<tbody style="font-variant-numeric: tabular-nums">
+<tr>
+<td style="padding: 12px 20px; border-bottom: 1px solid #F0F0F0; font-weight: 600">Microsoft 365 Business Standard</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">5</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">12,50 € / Mon.</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">12 Monate</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">01.01.2024 – <span style="color: #616161">offen</span></td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">31.12.2026</td>
+<td style="padding: 12px 20px; border-bottom: 1px solid #F0F0F0; color: #6B4700; font-weight: 600">01.01.2027 – 31.12.2027</td>
+</tr>
+<tr>
+<td style="padding: 12px 20px; border-bottom: 1px solid #F0F0F0; font-weight: 600">Domain huber-baeckerei.at</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">1</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">24,00 € / Jahr</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">12 Monate</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">15.03.2023 – <span style="color: #616161">offen</span></td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">14.03.2027</td>
+<td style="padding: 12px 20px; border-bottom: 1px solid #F0F0F0; color: #6B4700; font-weight: 600">15.03.2027 – 14.03.2028</td>
+</tr>
+<tr>
+<td style="padding: 12px 20px; border-bottom: 1px solid #F0F0F0; font-weight: 600">Domain huber.com</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">1</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">36,00 € / 2 Jahre</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">24 Monate</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">01.09.2022 – <span style="color: #616161">offen</span></td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">31.08.2028</td>
+<td style="padding: 12px 20px; border-bottom: 1px solid #F0F0F0; color: #0E5C0E">nicht fällig</td>
+</tr>
+<tr>
+<td style="padding: 12px 20px; border-bottom: 1px solid #F0F0F0; font-weight: 600">Cloud-Backup 100 GB <span style="margin-left: 6px; padding: 1px 6px; border-radius: 4px; background: #EBF3FC; color: #0F548C; font-size: 12px; font-weight: 600">neu</span></td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">1</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">9,90 € / Mon.</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">1 Monat</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">01.08.2026 – <span style="color: #616161">offen</span></td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; color: #616161">noch nie</td>
+<td style="padding: 12px 20px; border-bottom: 1px solid #F0F0F0; color: #6B4700; font-weight: 600">01.08.2026 – 31.12.2027</td>
+</tr>
+<tr style="color: #707070">
+<td style="padding: 12px 20px; font-weight: 600"><span style="text-decoration: line-through">SSL-Zertifikat Wildcard</span> <span style="margin-left: 6px; padding: 1px 6px; border-radius: 4px; background: #F0F0F0; color: #424242; font-size: 12px; font-weight: 600; text-decoration: none">gekündigt</span></td>
+<td style="padding: 12px; text-align: right">1</td>
+<td style="padding: 12px; text-align: right">89,00 € / Jahr</td>
+<td style="padding: 12px">12 Monate</td>
+<td style="padding: 12px">01.07.2021 – 30.06.2026</td>
+<td style="padding: 12px">30.06.2026</td>
+<td style="padding: 12px 20px">entfällt</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 8px; display: flex; flex-direction: column">
+<div style="padding: 16px 20px; border-bottom: 1px solid #E0E0E0; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap">
+<h2 style="margin: 0; font-size: 16px; font-weight: 600">Zeitleiste der verrechneten Zeiträume</h2>
+<div style="display: flex; gap: 16px; flex-wrap: wrap; color: #424242; font-size: 13px">
+<span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 18px; height: 10px; border-radius: 2px; background: #0F6CBD"></span>verrechnet</span>
+<span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 18px; height: 10px; border-radius: 2px; background: #FFF4CE; border: 1px dashed #8A6100; box-sizing: border-box"></span>Vorschlag Folgerechnung</span>
+<span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 2px; height: 14px; background: #A4262C"></span>heute</span>
+</div>
+</div>
+<div style="overflow-x: auto">
+<div style="min-width: 880px; padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; gap: 16px; align-items: center">
+<span style="width: 220px; flex: none"></span>
+<div style="flex: 1; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); color: #616161; font-size: 12px">
+<span style="border-left: 1px solid #E0E0E0; padding-left: 6px">2024</span>
+<span style="border-left: 1px solid #E0E0E0; padding-left: 6px">2025</span>
+<span style="border-left: 1px solid #E0E0E0; padding-left: 6px">2026</span>
+<span style="border-left: 1px solid #E0E0E0; padding-left: 6px">2027</span>
+<span style="border-left: 1px solid #E0E0E0; padding-left: 6px">2028</span>
+</div>
+</div>
+
+<div style="display: flex; gap: 16px; align-items: center">
+<span style="width: 220px; flex: none; font-weight: 600">Microsoft 365 Business Std.</span>
+<div style="flex: 1; position: relative; height: 22px; background: #FAFAFA; border-radius: 3px">
+<div style="position: absolute; left: 0%; width: 19.8%; top: 3px; bottom: 3px; background: #0F6CBD; border-radius: 3px"></div>
+<div style="position: absolute; left: 20%; width: 19.8%; top: 3px; bottom: 3px; background: #0F6CBD; border-radius: 3px"></div>
+<div style="position: absolute; left: 40%; width: 19.8%; top: 3px; bottom: 3px; background: #0F6CBD; border-radius: 3px"></div>
+<div style="position: absolute; left: 60%; width: 19.8%; top: 3px; bottom: 3px; background: #FFF4CE; border: 1px dashed #8A6100; box-sizing: border-box; border-radius: 3px"></div>
+<div aria-hidden="true" style="position: absolute; left: 57.2%; top: -4px; bottom: -4px; width: 2px; background: #A4262C"></div>
+</div>
+</div>
+
+<div style="display: flex; gap: 16px; align-items: center">
+<span style="width: 220px; flex: none; font-weight: 600">Domain huber-baeckerei.at</span>
+<div style="flex: 1; position: relative; height: 22px; background: #FAFAFA; border-radius: 3px">
+<div style="position: absolute; left: 0%; width: 4.2%; top: 3px; bottom: 3px; background: #0F6CBD; border-radius: 3px"></div>
+<div style="position: absolute; left: 4.4%; width: 19.8%; top: 3px; bottom: 3px; background: #0F6CBD; border-radius: 3px"></div>
+<div style="position: absolute; left: 24.4%; width: 19.8%; top: 3px; bottom: 3px; background: #0F6CBD; border-radius: 3px"></div>
+<div style="position: absolute; left: 44.4%; width: 19.8%; top: 3px; bottom: 3px; background: #0F6CBD; border-radius: 3px"></div>
+<div style="position: absolute; left: 64.4%; width: 19.8%; top: 3px; bottom: 3px; background: #FFF4CE; border: 1px dashed #8A6100; box-sizing: border-box; border-radius: 3px"></div>
+<div aria-hidden="true" style="position: absolute; left: 57.2%; top: -4px; bottom: -4px; width: 2px; background: #A4262C"></div>
+</div>
+</div>
+
+<div style="display: flex; gap: 16px; align-items: center">
+<span style="width: 220px; flex: none; font-weight: 600">Domain huber.com</span>
+<div style="flex: 1; position: relative; height: 22px; background: #FAFAFA; border-radius: 3px">
+<div style="position: absolute; left: 0%; width: 13.1%; top: 3px; bottom: 3px; background: #0F6CBD; border-radius: 3px"></div>
+<div style="position: absolute; left: 13.3%; width: 39.8%; top: 3px; bottom: 3px; background: #0F6CBD; border-radius: 3px"></div>
+<div style="position: absolute; left: 53.3%; width: 39.8%; top: 3px; bottom: 3px; background: #0F6CBD; border-radius: 3px"></div>
+<div aria-hidden="true" style="position: absolute; left: 57.2%; top: -4px; bottom: -4px; width: 2px; background: #A4262C"></div>
+</div>
+</div>
+
+<div style="display: flex; gap: 16px; align-items: center">
+<span style="width: 220px; flex: none; font-weight: 600">Cloud-Backup 100 GB</span>
+<div style="flex: 1; position: relative; height: 22px; background: #FAFAFA; border-radius: 3px">
+<div style="position: absolute; left: 51.7%; width: 8.2%; top: 3px; bottom: 3px; background: #FFF4CE; border: 1px dashed #8A6100; box-sizing: border-box; border-radius: 3px"></div>
+<div style="position: absolute; left: 60%; width: 19.8%; top: 3px; bottom: 3px; background: #FFF4CE; border: 1px dashed #8A6100; box-sizing: border-box; border-radius: 3px"></div>
+<div aria-hidden="true" style="position: absolute; left: 57.2%; top: -4px; bottom: -4px; width: 2px; background: #A4262C"></div>
+</div>
+</div>
+
+<div style="display: flex; gap: 16px; align-items: center; color: #707070">
+<span style="width: 220px; flex: none; font-weight: 600">SSL-Zertifikat (gekündigt)</span>
+<div style="flex: 1; position: relative; height: 22px; background: #FAFAFA; border-radius: 3px">
+<div style="position: absolute; left: 0%; width: 9.8%; top: 3px; bottom: 3px; background: #9FB8D0; border-radius: 3px"></div>
+<div style="position: absolute; left: 10%; width: 19.8%; top: 3px; bottom: 3px; background: #9FB8D0; border-radius: 3px"></div>
+<div style="position: absolute; left: 30%; width: 19.8%; top: 3px; bottom: 3px; background: #9FB8D0; border-radius: 3px"></div>
+<div aria-hidden="true" style="position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: #424242"></div>
+<div aria-hidden="true" style="position: absolute; left: 57.2%; top: -4px; bottom: -4px; width: 2px; background: #A4262C"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 8px; display: flex; flex-direction: column">
+<div style="padding: 16px 20px; border-bottom: 1px solid #E0E0E0">
+<h2 style="margin: 0; font-size: 16px; font-weight: 600">Rechnungshistorie</h2>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 720px; border-collapse: collapse; font-variant-numeric: tabular-nums">
+<thead>
+<tr style="text-align: left; color: #616161; font-size: 13px">
+<th style="padding: 10px 20px; font-weight: 600; border-bottom: 1px solid #E0E0E0">Rechnungsnr.</th>
+<th style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0">Datum</th>
+<th style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0">Positionen</th>
+<th style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0; text-align: right">Netto</th>
+<th style="padding: 10px 20px; font-weight: 600; border-bottom: 1px solid #E0E0E0"><span style="position: absolute; left: -9999px">Dokument</span></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="padding: 12px 20px; border-bottom: 1px solid #F0F0F0; font-weight: 600">RE-2026-004</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">12.01.2026</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0">4 Zeiträume</td>
+<td style="padding: 12px; border-bottom: 1px solid #F0F0F0; text-align: right">899,00 €</td>
+<td style="padding: 12px 20px; border-bottom: 1px solid #F0F0F0; text-align: right"><a href="#">Rechnung öffnen</a></td>
+</tr>
+<tr>
+<td style="padding: 12px 20px; font-weight: 600">RE-2025-007</td>
+<td style="padding: 12px">13.01.2025</td>
+<td style="padding: 12px">3 Zeiträume</td>
+<td style="padding: 12px; text-align: right">863,00 €</td>
+<td style="padding: 12px 20px; text-align: right"><a href="#">Rechnung öffnen</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+
+</div>
+</div>
+
+</body>
+</html>

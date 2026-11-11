@@ -1,0 +1,38 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "abo-abrechnung-client-side-solution",
+    "id": "a9ee3f28-f61c-4e04-a995-c7ab656cc0cd",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "developer": {
+      "name": "",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": "Undefined-1.24.1"
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "abo-abrechnung description"
+      },
+      "longDescription": {
+        "default": "abo-abrechnung description"
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "abo-abrechnung Feature",
+        "description": "The feature that activates elements of the abo-abrechnung solution.",
+        "id": "4149df17-f452-42b8-b87e-61465f3b0994",
+        "version": "1.0.0.0"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/abo-abrechnung.sppkg"
+  }
+}

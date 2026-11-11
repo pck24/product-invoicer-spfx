@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Kundenübersicht</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0F6CBD}a:hover{color:#0C3B5E}
+</style>
+</head>
+<body>
+
+
+<div style="min-height: 100vh; box-sizing: border-box; background: #F5F5F5; padding: 24px 16px; font-family: 'Segoe UI', Inter, system-ui, sans-serif; color: #242424; font-size: 14px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px">
+
+<header style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 8px; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h1 style="margin: 0; font-size: 22px; font-weight: 600">Abo-Abrechnung</h1>
+<p style="margin: 0; color: #616161">Kunden, laufende Positionen und Folgerechnungen</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<label style="display: flex; align-items: center; gap: 8px; border: 1px solid #C7C7C7; border-radius: 4px; padding: 0 10px; height: 36px; background: #FFFFFF">
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#616161" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5L14 14"></path></svg>
+<span style="position: absolute; left: -9999px">Kunden suchen</span>
+<input type="search" placeholder="Name oder Kundennummer" style="border: none; outline: none; font: inherit; width: 200px; background: transparent">
+</label>
+<button type="button" style="height: 36px; padding: 0 16px; border-radius: 4px; border: 1px solid #0F6CBD; background: #0F6CBD; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">+ Kunde anlegen</button>
+</div>
+</div>
+<nav aria-label="Bereiche" style="display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid #E0E0E0">
+<a href="#" style="padding: 10px 14px; text-decoration: none; color: #242424; font-weight: 600; border-bottom: 3px solid #0F6CBD">Kunden</a>
+<a href="#" style="padding: 10px 14px; text-decoration: none; color: #424242; border-bottom: 3px solid transparent">Produktkatalog</a>
+<a href="#" style="padding: 10px 14px; text-decoration: none; color: #424242; border-bottom: 3px solid transparent">Rechnungen</a>
+</nav>
+</header>
+
+<section aria-label="Überblick" style="display: flex; flex-wrap: wrap; gap: 16px">
+<div style="flex: 1 1 220px; background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 8px; padding: 16px 20px; display: flex; flex-direction: column; gap: 4px">
+<span style="color: #616161; font-size: 13px">Nächster Abrechnungstermin</span>
+<span style="font-size: 24px; font-weight: 600">01.01.2027</span>
+</div>
+<div style="flex: 1 1 220px; background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 8px; padding: 16px 20px; display: flex; flex-direction: column; gap: 4px">
+<span style="color: #616161; font-size: 13px">Kunden mit offenen Zeiträumen</span>
+<span style="font-size: 24px; font-weight: 600">3 von 5</span>
+</div>
+<div style="flex: 1 1 220px; background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 8px; padding: 16px 20px; display: flex; flex-direction: column; gap: 4px">
+<span style="color: #616161; font-size: 13px">Vorschlag gesamt (netto)</span>
+<span style="font-size: 24px; font-weight: 600">2.418,60 €</span>
+</div>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 8px; display: flex; flex-direction: column">
+<div style="padding: 16px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; border-bottom: 1px solid #E0E0E0">
+<h2 style="margin: 0; font-size: 16px; font-weight: 600">Kunden</h2>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<button type="button" style="height: 32px; padding: 0 12px; border-radius: 16px; border: 1px solid #0F6CBD; background: #EBF3FC; color: #0F6CBD; font: inherit; font-weight: 600">Alle</button>
+<button type="button" style="height: 32px; padding: 0 12px; border-radius: 16px; border: 1px solid #C7C7C7; background: #FFFFFF; color: #424242; font: inherit">Fällig</button>
+<button type="button" style="height: 32px; padding: 0 12px; border-radius: 16px; border: 1px solid #C7C7C7; background: #FFFFFF; color: #424242; font: inherit">Aktuell</button>
+</div>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 880px; border-collapse: collapse">
+<thead>
+<tr style="text-align: left; color: #616161; font-size: 13px">
+<th style="padding: 10px 20px; font-weight: 600; border-bottom: 1px solid #E0E0E0">Kd.-Nr.</th>
+<th style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0">Name</th>
+<th style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0">Aktive Positionen</th>
+<th style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0">Letzte Rechnung</th>
+<th style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0">Status</th>
+<th style="padding: 10px 20px; font-weight: 600; border-bottom: 1px solid #E0E0E0"><span style="position: absolute; left: -9999px">Aktion</span></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="padding: 14px 20px; border-bottom: 1px solid #F0F0F0; font-variant-numeric: tabular-nums">K-1001</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0F0; font-weight: 600">Bäckerei Huber GmbH</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0F0">5 <span style="color: #616161">(1 gekündigt)</span></td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0F0">RE-2026-004 · 12.01.2026</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0F0"><span style="display: inline-block; padding: 3px 10px; border-radius: 12px; background: #FFF4CE; color: #6B4700; font-size: 13px; font-weight: 600">Fällig · 4 Zeiträume</span></td>
+<td style="padding: 14px 20px; border-bottom: 1px solid #F0F0F0; text-align: right"><a href="02-kundendetail.html" style="font-weight: 600">Öffnen</a></td>
+</tr>
+<tr>
+<td style="padding: 14px 20px; border-bottom: 1px solid #F0F0F0; font-variant-numeric: tabular-nums">K-1002</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0F0; font-weight: 600">Steuerberatung Moser</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0F0">3</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0F0">RE-2026-006 · 14.01.2026</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0F0"><span style="display: inline-block; padding: 3px 10px; border-radius: 12px; background: #FFF4CE; color: #6B4700; font-size: 13px; font-weight: 600">Fällig · 3 Zeiträume</span></td>
+<td style="padding: 14px 20px; border-bottom: 1px solid #F0F0F0; text-align: right"><a href="02-kundendetail.html" style="font-weight: 600">Öffnen</a></td>
+</tr>
+<tr>
+<td style="padding: 14px 20px; border-bottom: 1px solid #F0F0F0; font-variant-numeric: tabular-nums">K-1003</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0F0; font-weight: 600">Tischlerei Gruber</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0F0">2</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0F0">RE-2026-002 · 08.01.2026</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0F0"><span style="display: inline-block; padding: 3px 10px; border-radius: 12px; background: #FDE7E9; color: #A4262C; font-size: 13px; font-weight: 600">Neue Position · anteilig offen</span></td>
+<td style="padding: 14px 20px; border-bottom: 1px solid #F0F0F0; text-align: right"><a href="02-kundendetail.html" style="font-weight: 600">Öffnen</a></td>
+</tr>
+<tr>
+<td style="padding: 14px 20px; border-bottom: 1px solid #F0F0F0; font-variant-numeric: tabular-nums">K-1004</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0F0; font-weight: 600">Praxis Dr. Lehner</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0F0">4</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0F0">RE-2026-031 · 02.10.2026</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #F0F0F0"><span style="display: inline-block; padding: 3px 10px; border-radius: 12px; background: #E7F4E7; color: #0E5C0E; font-size: 13px; font-weight: 600">Verrechnet bis 30.09.2027</span></td>
+<td style="padding: 14px 20px; border-bottom: 1px solid #F0F0F0; text-align: right"><a href="02-kundendetail.html" style="font-weight: 600">Öffnen</a></td>
+</tr>
+<tr>
+<td style="padding: 14px 20px; font-variant-numeric: tabular-nums">K-1005</td>
+<td style="padding: 14px 12px; font-weight: 600">Weinbau Fuchs</td>
+<td style="padding: 14px 12px">1</td>
+<td style="padding: 14px 12px">RE-2025-044 · 03.11.2025</td>
+<td style="padding: 14px 12px"><span style="display: inline-block; padding: 3px 10px; border-radius: 12px; background: #E7F4E7; color: #0E5C0E; font-size: 13px; font-weight: 600">Verrechnet bis 31.10.2027</span></td>
+<td style="padding: 14px 20px; text-align: right"><a href="02-kundendetail.html" style="font-weight: 600">Öffnen</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+
+</div>
+</div>
+
+</body>
+</html>
