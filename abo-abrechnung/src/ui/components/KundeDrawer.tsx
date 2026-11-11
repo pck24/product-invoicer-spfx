@@ -103,7 +103,10 @@ export function KundeDrawer({ open, kunde, onClose, onSaved }: IKundeDrawerProps
           <Field label="Adresse">
             <Textarea value={adresse} rows={3} resize="vertical" onChange={(_, d) => setAdresse(d.value)} />
           </Field>
-          <Field label="Abrechnungsjahr beginnt im" hint="Rechnungsjahr läuft ab dem 1. dieses Monats.">
+          <Field
+            label="Jährliche Rechnung im"
+            hint="Monatsdienste werden für 12 Monate ab dem 1. dieses Monats verrechnet. Positionen mit eigener Laufzeit (z. B. Domains) kommen mit auf die Rechnung, sobald ihre Verlängerung in diese 12 Monate fällt."
+          >
             <Dropdown
               value={MONATE[monat - 1]}
               selectedOptions={[String(monat)]}
