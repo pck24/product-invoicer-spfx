@@ -1,0 +1,8 @@
+# Lokale Claude-Code-Einstellungen
+.claude/
+
+# PDFs (Exporte, Beispiele)
+*.pdf
+
+# Word-Sperrdateien (entstehen, solange ein Dokument in Word offen ist)
+~$*
