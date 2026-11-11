@@ -23,7 +23,7 @@ import { formatEuro } from '../../billing/money';
 import { IPositionItem, IRechnung } from '../../data/mapping';
 import { useApp } from '../AppContext';
 import { errorText, useData } from '../DataContext';
-import { BadgeColor, isGekuendigt, laufzeitText, naechsterZeitraum, preisText } from '../derive';
+import { BadgeColor, isGekuendigt, laufzeitText, preisText } from '../derive';
 import { ConfirmDialog, IConfirmRequest } from '../components/ConfirmDialog';
 import { KuendigenDialog } from '../components/KuendigenDialog';
 import { KundeDrawer } from '../components/KundeDrawer';
@@ -128,14 +128,13 @@ export function CustomerDetail({ kundeId, onFolgerechnung }: ICustomerDetailProp
                 <TableHeaderCell>Laufzeit</TableHeaderCell>
                 <TableHeaderCell>Vertrag von – bis</TableHeaderCell>
                 <TableHeaderCell>Verrechnet bis</TableHeaderCell>
-                <TableHeaderCell>Nächster Zeitraum</TableHeaderCell>
                 <TableHeaderCell aria-label="Aktionen" style={{ width: '48px' }} />
               </TableRow>
             </TableHeader>
             <TableBody>
               {proposals.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className={shared.muted}>
+                  <TableCell colSpan={7} className={shared.muted}>
                     Noch keine Positionen. Mit „+ Position“ anlegen.
                   </TableCell>
                 </TableRow>
@@ -143,7 +142,6 @@ export function CustomerDetail({ kundeId, onFolgerechnung }: ICustomerDetailProp
               {proposals.map((p) => {
                 const pos = summary.positionen.filter((x) => x.id === p.position.id)[0];
                 const ended = isGekuendigt(pos, today);
-                const next = naechsterZeitraum(p);
                 return (
                   <TableRow key={pos.id} className={ended ? shared.ended : undefined}>
                     <TableCell className={shared.strong}>
@@ -167,12 +165,6 @@ export function CustomerDetail({ kundeId, onFolgerechnung }: ICustomerDetailProp
                     </TableCell>
                     <TableCell className={shared.num} style={{ textAlign: 'left' }}>
                       {p.verrechnetBis ? formatDate(p.verrechnetBis) : <span className={shared.muted}>noch nie</span>}
-                    </TableCell>
-                    <TableCell
-                      className={mergeClasses(shared.num, next.tone === 'due' ? shared.due : next.tone === 'ok' ? shared.ok : next.tone === 'new' ? shared.muted : undefined)}
-                      style={{ textAlign: 'left' }}
-                    >
-                      {next.text}
                     </TableCell>
                     <TableCell>
                       <Menu>

@@ -12,7 +12,16 @@ const useStyles = makeStyles({
   swatch: { width: '18px', height: '10px', borderRadius: '2px', boxSizing: 'border-box' },
   body: { padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: '10px', '@media (max-width: 640px)': { minWidth: '600px' } },
   row: { display: 'flex', gap: '16px', alignItems: 'center' },
-  contract: { position: 'absolute', top: '9px', height: '4px', borderRadius: '2px', backgroundColor: tokens.colorNeutralStroke1 },
+  contract: {
+    position: 'absolute',
+    top: '3px',
+    bottom: '3px',
+    borderRadius: '3px',
+    boxSizing: 'border-box',
+    backgroundColor: tokens.colorBrandBackground2,
+    ...shorthands.border('1px', 'solid', tokens.colorBrandStroke2)
+  },
+  contractSwatch: { backgroundColor: tokens.colorBrandBackground2, ...shorthands.border('1px', 'solid', tokens.colorBrandStroke2) },
   label: { width: '180px', flex: 'none', fontWeight: tokens.fontWeightSemibold, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   years: { flex: 1, position: 'relative', height: '18px', color: tokens.colorNeutralForeground3, fontSize: '12px' },
   year: { position: 'absolute', top: 0, paddingLeft: '6px', ...shorthands.borderLeft('1px', 'solid', tokens.colorNeutralStroke2) },
@@ -98,8 +107,8 @@ export function Timeline({ proposals, lines, today }: ITimelineProps): React.Rea
         </h2>
         <div className={s.legend}>
           <span className={s.legendItem}>
-            <span aria-hidden="true" className={s.swatch} style={{ height: '4px', backgroundColor: tokens.colorNeutralStroke1 }} />
-            Vertrag
+            <span aria-hidden="true" className={mergeClasses(s.swatch, s.contractSwatch)} />
+            Vertrag, noch nicht verrechnet
           </span>
           <span className={s.legendItem}>
             <span aria-hidden="true" className={mergeClasses(s.swatch, s.billed)} />
@@ -180,7 +189,7 @@ export function Timeline({ proposals, lines, today }: ITimelineProps): React.Rea
             );
           })}
           {rows.every((r) => r.bars.length === 0) && (
-            <span className={shared.muted}>Noch keine verrechneten Zeiträume – sie erscheinen nach der ersten Rechnung.</span>
+            <span className={shared.muted}>Noch keine verrechneten Zeiträume – sie erscheinen nach der ersten Rechnung dunkelblau über dem Vertrag.</span>
           )}
         </div>
       </div>

@@ -31,7 +31,7 @@ export const useShared = makeStyles({
   tableWrap: { overflowX: 'auto' },
   // Tabellen passen sich der Breite an; nur auf schmalen Geräten (< 640 px) scrollen sie in der Karte
   table: { width: '100%', tableLayout: 'auto', '@media (max-width: 640px)': { minWidth: '640px' } },
-  num: { textAlign: 'right', fontVariantNumeric: 'tabular-nums' },
+  num: { textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' },
   numHead: { '& .fui-TableHeaderCell__button': { justifyContent: 'flex-end' } },
   strong: { fontWeight: tokens.fontWeightSemibold },
   ended: { color: tokens.colorNeutralForeground4 },
