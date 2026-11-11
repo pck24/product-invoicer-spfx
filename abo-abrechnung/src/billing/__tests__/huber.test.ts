@@ -1,61 +1,58 @@
-import { totals, formatEuro } from '../money';
-import { IPositionProposal, proposeInvoice } from '../proposal';
-import { HUBER_STICHTAG, huberLines, huberPositions } from './fixtures';
+import { formatEuro, totals } from '../money';
+import { computeLine, IPositionProposal, proposeInvoice } from '../proposal';
+import { validateInvoice } from '../validation';
+import { HUBER_DATUM, huberLines, huberPositions } from './fixtures';
 
-describe('Referenzbeispiel Bäckerei Huber, Stichtag 31.12.2027', () => {
-  const proposal = proposeInvoice(huberPositions, huberLines, HUBER_STICHTAG);
+describe('Referenzbeispiel Bäckerei Huber, Rechnung vom 08.01.2027', () => {
+  const proposal = proposeInvoice(huberPositions, huberLines, HUBER_DATUM);
   const byId = (id: number): IPositionProposal => proposal.positions.filter((p) => p.position.id === id)[0];
 
-  it('Microsoft 365 × 5: 01.01.–31.12.2027, 750,00 €', () => {
-    const p = byId(1);
-    expect(p.status).toBe('faellig');
-    expect(p.segments).toHaveLength(1);
-    expect(p.segments[0]).toMatchObject({ von: '2027-01-01', bis: '2027-12-31', monateX100: 1200, betragCent: 75000, art: 'Folgezeitraum' });
+  it('Microsoft 365 × 5: schließt an, 01.01.–31.12.2027, 750,00 €', () => {
+    expect(byId(1).status).toBe('faellig');
+    expect(byId(1).segments[0]).toMatchObject({ von: '2027-01-01', bis: '2027-12-31', monateX100: 1200, betragCent: 75000, art: 'Folgezeitraum' });
   });
 
   it('Domain .at: 15.03.2027–14.03.2028, 24,00 €', () => {
-    const p = byId(2);
-    expect(p.segments).toHaveLength(1);
-    expect(p.segments[0]).toMatchObject({ von: '2027-03-15', bis: '2028-03-14', monateX100: 1200, betragCent: 2400, art: 'Folgezeitraum', hinweis: 'Verlängerung im Voraus' });
+    expect(byId(2).segments[0]).toMatchObject({ von: '2027-03-15', bis: '2028-03-14', monateX100: 1200, betragCent: 2400 });
   });
 
-  it('Domain .com: nicht fällig', () => {
-    const p = byId(3);
-    expect(p.status).toBe('nichtFaellig');
-    expect(p.verrechnetBis).toBe('2028-08-31');
-    expect(p.segments).toHaveLength(0);
+  it('Domain .com (2 Jahre, bezahlt bis 31.08.2028): nicht fällig', () => {
+    expect(byId(3).status).toBe('nichtFaellig');
+    expect(proposal.segments.filter((s) => s.positionId === 3)).toHaveLength(0);
   });
 
-  it('Cloud-Backup: anteilig 2026 49,50 € und 2027 118,80 €', () => {
-    const p = byId(4);
-    expect(p.verrechnetBis).toBeNull();
-    expect(p.segments).toHaveLength(2);
-    expect(p.segments[0]).toMatchObject({ von: '2026-08-01', bis: '2026-12-31', monateX100: 500, betragCent: 4950, art: 'Anteilig', hinweis: 'anteilig nachverrechnet' });
-    expect(p.segments[1]).toMatchObject({ von: '2027-01-01', bis: '2027-12-31', monateX100: 1200, betragCent: 11880, art: 'Folgezeitraum' });
+  it('Cloud-Backup: noch nie verrechnet, kein Vorschlag (erster Zeitraum frei)', () => {
+    expect(byId(4).status).toBe('neu');
+    expect(byId(4).segments).toHaveLength(0);
   });
 
   it('SSL-Zertifikat: entfällt', () => {
     expect(byId(5).status).toBe('entfaellt');
-    expect(byId(5).segments).toHaveLength(0);
   });
 
-  it('Summen auf den Cent: 942,30 € netto, 188,46 € USt, 1.130,76 € brutto', () => {
-    const t = totals(proposal.segments.map((s) => s.betragCent), 20);
+  it('Summen mit manuellem Cloud-Backup 01.08.2026–31.12.2027: 942,30 / 188,46 / 1.130,76 €', () => {
+    const cloud = computeLine(huberPositions[3], '2026-08-01', '2027-12-31');
+    expect(cloud).toEqual({ monateX100: 1700, betragCent: 16830 }); // = 49,50 + 118,80
+    const t = totals(proposal.segments.map((s) => s.betragCent).concat(cloud.betragCent), 20);
     expect(t).toEqual({ nettoCent: 94230, ustCent: 18846, bruttoCent: 113076 });
-    expect(formatEuro(t.nettoCent)).toBe('942,30 €');
-    expect(formatEuro(t.ustCent)).toBe('188,46 €');
     expect(formatEuro(t.bruttoCent)).toBe('1.130,76 €');
   });
 
-  it('Reihenfolge: fällig, nicht fällig, entfällt', () => {
-    expect(proposal.positions.map((p) => p.status)).toEqual(['faellig', 'faellig', 'faellig', 'nichtFaellig', 'entfaellt']);
-    expect(proposal.segments).toHaveLength(4);
+  it('Vorschlag plus manueller Zeitraum besteht die Prüfung', () => {
+    const lines = proposal.segments
+      .map((s, i) => ({ key: String(i), positionId: s.positionId, title: s.title, von: s.von, bis: s.bis }))
+      .concat({ key: 'c', positionId: 4, title: 'Cloud-Backup', von: '2026-08-01', bis: '2027-12-31' });
+    expect(validateInvoice({ invoiceNumber: '2027-001', existingInvoiceNumbers: [], lines, positions: huberPositions, billedLines: huberLines })).toEqual([]);
+  });
+
+  it('Reihenfolge: fällig, neu, nicht fällig, entfällt', () => {
+    expect(proposal.positions.map((p) => p.status)).toEqual(['faellig', 'faellig', 'neu', 'nichtFaellig', 'entfaellt']);
   });
 
   it('Ein zweiter Vorschlag nach dem Speichern ist leer', () => {
-    const saved = huberLines.concat(
-      proposal.segments.map((s) => ({ positionId: s.positionId, von: s.von, bis: s.bis, status: 'Erstellt' as const }))
-    );
-    expect(proposeInvoice(huberPositions, saved, HUBER_STICHTAG).segments).toHaveLength(0);
+    const saved = huberLines
+      .concat(proposal.segments.map((s) => ({ positionId: s.positionId, von: s.von, bis: s.bis, status: 'Erstellt' as const })))
+      .concat({ positionId: 4, von: '2026-08-01', bis: '2027-12-31', status: 'Erstellt' });
+    expect(proposeInvoice(huberPositions, saved, HUBER_DATUM).segments).toHaveLength(0);
   });
 });

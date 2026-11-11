@@ -38,27 +38,10 @@ export function monthsX100(von: ISODate, bis: ISODate, anchor?: ISODate): number
   return n * 100 + divRoundHalfUp(restDays * 100, monthDays);
 }
 
-/** Abrechnungsjahr zum Stichtag S: [S − 12 Monate + 1 Tag, S]. */
-export function billingYear(stichtag: ISODate): { start: ISODate; end: ISODate } {
-  return { start: addDaysIso(addMonthsIso(stichtag, -12), 1), end: stichtag };
-}
+/** Vorlauf: Zeiträume, die bis zu so vielen Monaten nach dem Rechnungsdatum beginnen, sind fällig. */
+export const VORLAUF_MONATE = 3;
 
-/**
- * Standard-Stichtag: Ende des Abrechnungsjahres, dessen Beginn (1. des
- * StichtagMonats) dem Bezugsdatum am nächsten liegt.
- */
-export function defaultStichtag(stichtagMonat: number, bezugsdatum: ISODate): ISODate {
-  const year = Number(bezugsdatum.substring(0, 4));
-  const month = Math.min(12, Math.max(1, Math.round(stichtagMonat || 1)));
-  let best: ISODate = '';
-  let bestDiff = Number.MAX_VALUE;
-  for (let y = year - 1; y <= year + 1; y++) {
-    const start = `${y}-${month < 10 ? '0' : ''}${month}-01`;
-    const diff = Math.abs(diffDays(bezugsdatum, start));
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      best = start;
-    }
-  }
-  return addDaysIso(addMonthsIso(best, 12), -1);
+/** Spätester Beginn eines fälligen Zeitraums. */
+export function horizon(rechnungsdatum: ISODate): ISODate {
+  return addMonthsIso(rechnungsdatum, VORLAUF_MONATE);
 }

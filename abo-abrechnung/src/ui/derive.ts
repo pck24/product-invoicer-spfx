@@ -1,7 +1,6 @@
 /** Reine Ableitungen für die Oberfläche (ohne React und SharePoint). */
-import { addDaysIso, addMonthsIso, formatDate, pad2 } from '../billing/dates';
+import { formatDate } from '../billing/dates';
 import { formatEuro, formatMonate } from '../billing/money';
-import { billingYear, defaultStichtag } from '../billing/periods';
 import { IPositionProposal, ISegment, nextStart, proposeForPosition, proposeInvoice } from '../billing/proposal';
 import { IBilledLine, IPosition, ISODate } from '../billing/types';
 import { IKunde, IPositionItem, IRechnung } from '../data/mapping';
@@ -16,14 +15,19 @@ export interface IStatusBadge {
 export interface ICustomerSummary {
   kunde: IKunde;
   positionen: IPositionItem[];
-  stichtag: ISODate;
   proposals: IPositionProposal[];
+  /** Vorschlag einer Folgerechnung mit heutigem Datum */
   segments: ISegment[];
   aktivePositionen: number;
   gekuendigtePositionen: number;
   letzteRechnung: IRechnung | undefined;
   status: IStatusBadge;
-  faellig: boolean;
+  /** offene Zeiträume: bereits laufend und nicht verrechnet, oder neue Positionen */
+  offen: boolean;
+  /** Folgerechnung möglich (es gibt etwas vorzuschlagen oder neu zu verrechnen) */
+  rechnungMoeglich: boolean;
+  /** frühester nächster Zeitraum einer bereits verrechneten Position */
+  naechsterTermin: ISODate | null;
   vorschlagNettoCent: number;
 }
 
@@ -39,43 +43,40 @@ export function summarizeCustomer(
   lines: IBilledLine[],
   today: ISODate
 ): ICustomerSummary {
-  const stichtag = defaultStichtag(kunde.stichtagMonat, today);
-  const proposal = proposeInvoice(positionen, lines, stichtag);
+  const proposal = proposeInvoice(positionen, lines, today);
   const gekuendigt = positionen.filter((p) => isGekuendigt(p, today)).length;
   const letzte = rechnungen
     .filter((r) => r.status !== 'Storniert')
     .sort((a, b) => (b.rechnungsdatum || '').localeCompare(a.rechnungsdatum || '') || b.id - a.id)[0];
-  const due = proposal.positions.filter((p) => p.status === 'faellig');
+  const laufend = proposal.positions.filter((p) => p.status === 'faellig' && p.nextStart <= today);
+  const neu = proposal.positions.filter((p) => p.status === 'neu');
+  const laufendePositionen = proposal.positions.filter((p) => p.status === 'faellig' || p.status === 'nichtFaellig');
+  const termine = laufendePositionen.map((p) => p.nextStart).sort();
   let netto = 0;
-  for (const s of proposal.segments) netto += s.betragCent;
+  for (const p of laufend) for (const s of p.segments) netto += s.betragCent;
 
   let status: IStatusBadge;
   if (!kunde.aktiv) status = { color: 'informative', text: 'inaktiv' };
   else if (positionen.length === 0) status = { color: 'informative', text: 'keine Positionen' };
-  else if (due.length > 0 && due.every((p) => p.verrechnetBis === null)) status = { color: 'danger', text: 'Neue Position · anteilig offen' };
-  else if (due.length > 0) {
-    const n = proposal.segments.length;
-    status = { color: 'warning', text: `Fällig · ${n} ${n === 1 ? 'Zeitraum' : 'Zeiträume'}` };
-  } else {
-    const offen = proposal.positions.filter((p) => p.status === 'nichtFaellig' && p.verrechnetBis);
-    if (offen.length === 0) status = { color: 'informative', text: 'gekündigt' };
-    else {
-      const min = offen.map((p) => p.verrechnetBis as string).sort()[0];
-      status = { color: 'success', text: `Verrechnet bis ${formatDate(min)}` };
-    }
-  }
+  else if (laufend.length > 0) status = { color: 'warning', text: `Fällig · ${laufend.length} ${laufend.length === 1 ? 'Zeitraum' : 'Zeiträume'}` };
+  else if (neu.length > 0) status = { color: 'danger', text: 'Neue Position · Zeitraum offen' };
+  else if (termine.length > 0) {
+    const vb = laufendePositionen.map((p) => p.verrechnetBis as string).sort()[0];
+    status = { color: 'success', text: `Verrechnet bis ${formatDate(vb)}` };
+  } else status = { color: 'informative', text: 'gekündigt' };
 
   return {
     kunde,
     positionen,
-    stichtag,
     proposals: proposal.positions,
     segments: proposal.segments,
     aktivePositionen: positionen.length - gekuendigt,
     gekuendigtePositionen: gekuendigt,
     letzteRechnung: letzte,
     status,
-    faellig: kunde.aktiv && proposal.segments.length > 0,
+    offen: kunde.aktiv && (laufend.length > 0 || neu.length > 0),
+    rechnungMoeglich: kunde.aktiv && proposal.positions.some((p) => p.status !== 'entfaellt'),
+    naechsterTermin: kunde.aktiv ? termine[0] || null : null,
     vorschlagNettoCent: kunde.aktiv ? netto : 0
   };
 }
@@ -89,65 +90,40 @@ export interface IKpis {
 
 export function kpis(summaries: ICustomerSummary[]): IKpis {
   const aktive = summaries.filter((s) => s.kunde.aktiv);
-  const faellig = aktive.filter((s) => s.faellig);
-  const termine = faellig.map((s) => billingYear(s.stichtag).start).sort();
+  const termine = aktive.map((s) => s.naechsterTermin).filter((t): t is ISODate => !!t).sort();
   let netto = 0;
-  for (const s of faellig) netto += s.vorschlagNettoCent;
-  return { naechsterTermin: termine[0] || null, offen: faellig.length, gesamt: aktive.length, vorschlagNettoCent: netto };
+  for (const s of aktive) netto += s.vorschlagNettoCent;
+  return { naechsterTermin: termine[0] || null, offen: aktive.filter((s) => s.offen).length, gesamt: aktive.length, vorschlagNettoCent: netto };
 }
 
-/** "Abrechnung jährlich zum 01.04." */
-export function stichtagText(monat: number): string {
-  return `01.${pad2(monat || 1)}.`;
-}
-
-export const MONATE = ['Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-
-/** "12,50 € / Mon.", "24,00 € / Jahr", "36,00 € / 2 Jahre", "5,00 € / 3 Mon." */
+/** "24,00 € / Jahr" */
 export function preisText(p: IPosition): string {
-  const preis = formatEuro(p.preisCent);
-  if (p.preisbasis === 'Monat') return `${preis} / Mon.`;
-  const l = p.laufzeitMonate;
-  if (l === 12) return `${preis} / Jahr`;
-  if (l % 12 === 0) return `${preis} / ${l / 12} Jahre`;
-  return `${preis} / ${l} Mon.`;
+  return `${formatEuro(p.jahrespreisCent)} / Jahr`;
 }
 
 export function laufzeitText(monate: number): string {
   return monate === 1 ? '1 Monat' : `${monate} Monate`;
 }
 
-/** Ende des Abrechnungsjahres, das das Datum enthält. */
-export function billingYearEndContaining(date: ISODate, stichtagMonat: number): ISODate {
-  const y = Number(date.substring(0, 4));
-  let start = `${y}-${pad2(stichtagMonat || 1)}-01`;
-  if (start > date) start = `${y - 1}-${pad2(stichtagMonat || 1)}-01`;
-  return addDaysIso(addMonthsIso(start, 12), -1);
+export function monateText(monateX100: number): string {
+  return `${formatMonate(monateX100)} ${monateX100 === 100 ? 'Monat' : 'Monate'}`;
 }
 
 /** Text für die Live-Vorschau im Positions-Drawer. */
-export function previewText(position: IPosition, lines: IBilledLine[], stichtagMonat: number): string {
+export function previewText(position: IPosition, lines: IBilledLine[]): string {
   const start = nextStart(position, lines);
-  if (position.ende && start > position.ende) return 'Kein offener Zeitraum mehr – die Position ist bis zum Leistungsende verrechnet.';
-  const s = billingYearEndContaining(start, stichtagMonat);
-  const r = proposeForPosition(position, lines, s);
+  const r = proposeForPosition(position, lines, start);
+  if (r.status === 'entfaellt') return 'Kein offener Zeitraum mehr – die Position ist bis zum Leistungsende verrechnet.';
+  if (r.status === 'neu') return `Noch nicht verrechnet. Den ersten Zeitraum legst du bei der Rechnung frei fest (ab ${formatDate(position.beginn)}); danach schließen die Folgezeiträume automatisch an.`;
   const seg = r.segments[0];
-  if (!seg) return '';
-  const prefix = r.verrechnetBis ? 'Nächster Zeitraum' : 'Wird erstmals verrechnet';
-  const art = seg.art === 'Folgezeitraum' ? (position.modus === 'Laufzeit' ? 'im Voraus' : 'volles Jahr') : seg.art.toLowerCase();
-  const danach =
-    position.modus === 'Laufzeit'
-      ? `danach alle ${laufzeitText(position.laufzeitMonate)} im Voraus`
-      : `danach jährlich zum ${stichtagText(stichtagMonat)}`;
-  const ende = position.ende && seg.bis >= position.ende ? ', danach endet die Leistung' : `, ${danach}`;
-  const text = `${prefix}: ${formatDate(seg.von)} – ${formatDate(seg.bis)} (${art}, ${formatMonate(seg.monateX100)} ${seg.monateX100 === 100 ? 'Monat' : 'Monate'}, ${formatEuro(seg.betragCent)})${ende}`;
-  return text.charAt(text.length - 1) === '.' ? text : `${text}.`;
+  return `Nächster Zeitraum: ${formatDate(seg.von)} – ${formatDate(seg.bis)} (${monateText(seg.monateX100)}, ${formatEuro(seg.betragCent)}).`;
 }
 
 /** Text der Spalte "Nächster Zeitraum". */
-export function naechsterZeitraum(p: IPositionProposal): { text: string; tone: 'due' | 'ok' | 'none' } {
+export function naechsterZeitraum(p: IPositionProposal): { text: string; tone: 'due' | 'ok' | 'new' | 'none' } {
   if (p.status === 'entfaellt') return { text: 'entfällt', tone: 'none' };
-  if (p.status === 'nichtFaellig') return { text: 'nicht fällig', tone: 'ok' };
-  const segs = p.segments;
-  return { text: `${formatDate(segs[0].von)} – ${formatDate(segs[segs.length - 1].bis)}`, tone: 'due' };
+  if (p.status === 'neu') return { text: 'bei erster Rechnung festlegen', tone: 'new' };
+  if (p.status === 'nichtFaellig') return { text: `nicht fällig, ab ${formatDate(p.nextStart)}`, tone: 'ok' };
+  const seg = p.segments[0];
+  return { text: `${formatDate(seg.von)} – ${formatDate(seg.bis)}`, tone: 'due' };
 }

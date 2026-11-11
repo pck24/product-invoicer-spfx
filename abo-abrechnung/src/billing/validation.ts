@@ -62,6 +62,8 @@ export function validateInvoice(input: IValidationInput): IValidationIssue[] {
     const drafts = byPosition[position.id];
     if (!drafts) continue;
     const existing = input.billedLines.filter((l) => l.positionId === position.id && isActiveLine(l));
+    // Erste Verrechnung: Zeitraum frei wählbar ab Vertragsbeginn, daher keine Lücken-Warnung
+    let first = existing.length === 0;
     let expected = nextStart(position, input.billedLines);
     const sorted = drafts.slice().sort((a, b) => (a.von as string).localeCompare(b.von as string));
     let prev: IDraftLine | null = null;
@@ -80,14 +82,16 @@ export function validateInvoice(input: IValidationInput): IValidationIssue[] {
       if (prev && von <= (prev.bis as ISODate)) {
         issues.push({ severity: 'error', lineKey: line.key, message: `${name}: Zeiträume in dieser Rechnung überschneiden sich.` });
       } else if (von < expected && overlap.length === 0) {
-        issues.push({ severity: 'error', lineKey: line.key, message: `${name}: „Von“ liegt vor dem nächsten offenen Tag ${formatDate(expected)}.` });
-      } else if (von > expected) {
+        const text = first ? `vor dem Vertragsbeginn ${formatDate(expected)}` : `vor dem nächsten offenen Tag ${formatDate(expected)}`;
+        issues.push({ severity: 'error', lineKey: line.key, message: `${name}: „Von“ liegt ${text}.` });
+      } else if (von > expected && !first) {
         issues.push({ severity: 'warning', lineKey: line.key, message: `${name}: Lücke von ${formatDate(expected)} bis ${formatDate(addDaysIso(von, -1))}.` });
       }
       if (position.ende && bis > position.ende) {
         issues.push({ severity: 'error', lineKey: line.key, message: `${name}: „Bis“ liegt nach dem Leistungsende ${formatDate(position.ende)}.` });
       }
       expected = addDaysIso(bis, 1);
+      first = false;
       prev = line;
     }
   }

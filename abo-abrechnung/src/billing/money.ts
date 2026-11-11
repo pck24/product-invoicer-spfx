@@ -1,5 +1,3 @@
-import { Preisbasis } from './types';
-
 /** Ganzzahlige Division mit kaufmännischer Rundung (halbe Werte vom Nullpunkt weg). */
 export function divRoundHalfUp(num: number, den: number): number {
   if (den === 0) throw new Error('Division durch 0');
@@ -11,22 +9,12 @@ export function divRoundHalfUp(num: number, den: number): number {
 }
 
 /**
- * Zeilenbetrag in Cent.
- * Monat:    Preis × Menge × Monate
- * Laufzeit: Preis × Menge × Monate / LaufzeitMonate
+ * Zeilenbetrag in Cent: Jahrespreis × Menge × Monate / 12.
  * monateX100 = Monate × 100 (2 Dezimalstellen als Integer).
  */
-export function lineAmountCent(
-  preisCent: number,
-  menge: number,
-  monateX100: number,
-  preisbasis: Preisbasis,
-  laufzeitMonate: number
-): number {
+export function lineAmountCent(jahrespreisCent: number, menge: number, monateX100: number): number {
   const mengeX100 = Math.round(menge * 100);
-  const num = preisCent * mengeX100 * monateX100;
-  const den = 100 * 100 * (preisbasis === 'Laufzeit' ? Math.max(1, laufzeitMonate) : 1);
-  return divRoundHalfUp(num, den);
+  return divRoundHalfUp(jahrespreisCent * mengeX100 * monateX100, 100 * 100 * 12);
 }
 
 export interface ITotals {

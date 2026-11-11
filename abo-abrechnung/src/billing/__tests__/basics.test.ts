@@ -1,7 +1,7 @@
 import { addMonthsIso, formatDate, isIsoDate, parseDate } from '../dates';
 import { divRoundHalfUp, formatEuro, formatMonate, lineAmountCent, parseEuro, totals } from '../money';
 import { suggestNumber } from '../numbering';
-import { billingYear, defaultStichtag, monthsX100 } from '../periods';
+import { horizon, monthsX100 } from '../periods';
 
 describe('dates', () => {
   it('formatiert und parst TT.MM.JJJJ', () => {
@@ -35,10 +35,11 @@ describe('Geld', () => {
     expect(divRoundHalfUp(4, 3)).toBe(1);
   });
 
-  it('Betrag nach Preisbasis', () => {
-    expect(lineAmountCent(1250, 5, 1200, 'Monat', 12)).toBe(75000);
-    expect(lineAmountCent(3600, 1, 1200, 'Laufzeit', 24)).toBe(1800);
-    expect(lineAmountCent(990, 1, 455, 'Monat', 1)).toBe(4505); // 45,045 → 45,05
+  it('Betrag = Jahrespreis × Menge × Monate / 12', () => {
+    expect(lineAmountCent(15000, 5, 1200)).toBe(75000);
+    expect(lineAmountCent(1800, 1, 2400)).toBe(3600);
+    expect(lineAmountCent(11880, 1, 455)).toBe(4505); // 45,045 → 45,05
+    expect(lineAmountCent(1000, 1, 100)).toBe(83); // 83,33 → 83
   });
 
   it('USt auf die Nettosumme', () => {
@@ -61,26 +62,14 @@ describe('Geld', () => {
   });
 });
 
-describe('Abrechnungsjahr und Standard-Stichtag', () => {
-  it('Abrechnungsjahr zum Stichtag', () => {
-    expect(billingYear('2027-12-31')).toEqual({ start: '2027-01-01', end: '2027-12-31' });
-    expect(billingYear('2028-03-31')).toEqual({ start: '2027-04-01', end: '2028-03-31' });
-  });
-
-  it('nächstgelegener Jahresbeginn', () => {
-    expect(defaultStichtag(1, '2027-01-08')).toBe('2027-12-31');
-    expect(defaultStichtag(1, '2026-11-11')).toBe('2027-12-31');
-    expect(defaultStichtag(1, '2026-05-01')).toBe('2026-12-31');
-    expect(defaultStichtag(4, '2027-03-20')).toBe('2028-03-31');
+describe('Horizont', () => {
+  it('Rechnungsdatum + 3 Monate', () => {
+    expect(horizon('2027-06-17')).toBe('2027-09-17');
+    expect(horizon('2027-01-08')).toBe('2027-04-08');
   });
 });
 
 describe('Nummernvorschlag', () => {
-  it('RE-{YYYY}-{NNN}', () => {
-    expect(suggestNumber('RE-{YYYY}-{NNN}', [], 2027)).toBe('RE-2027-001');
-    expect(suggestNumber('RE-{YYYY}-{NNN}', ['RE-2026-044', 'RE-2027-001', 'RE-2027-009'], 2027)).toBe('RE-2027-010');
-  });
-
   it('K-{NNNN}', () => {
     expect(suggestNumber('K-{NNNN}', ['K-1001', 'K-1005', 'X-9999'], 2027)).toBe('K-1006');
   });

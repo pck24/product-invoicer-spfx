@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   Button,
-  Dropdown,
   DrawerBody,
   DrawerFooter,
   DrawerHeader,
@@ -10,7 +9,6 @@ import {
   Input,
   MessageBar,
   MessageBarBody,
-  Option,
   OverlayDrawer,
   Textarea
 } from '@fluentui/react-components';
@@ -19,7 +17,6 @@ import { suggestNumber } from '../../billing/numbering';
 import { IKunde } from '../../data/mapping';
 import { useApp } from '../AppContext';
 import { errorText, useData } from '../DataContext';
-import { MONATE } from '../derive';
 import { useShared } from '../styles';
 
 export interface IKundeDrawerProps {
@@ -38,7 +35,6 @@ export function KundeDrawer({ open, kunde, onClose, onSaved }: IKundeDrawerProps
   const [name, setName] = React.useState('');
   const [nummer, setNummer] = React.useState('');
   const [adresse, setAdresse] = React.useState('');
-  const [monat, setMonat] = React.useState(1);
   const [touched, setTouched] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | undefined>();
@@ -48,7 +44,6 @@ export function KundeDrawer({ open, kunde, onClose, onSaved }: IKundeDrawerProps
     setName(kunde ? kunde.name : '');
     setNummer(kunde ? kunde.kundennummer : suggestNumber('K-{NNNN}', andere.map((k) => k.kundennummer), new Date().getFullYear()));
     setAdresse(kunde ? kunde.adresse : '');
-    setMonat(kunde ? kunde.stichtagMonat : 1);
     setTouched(false);
     setError(undefined);
   }, [open, kunde]);
@@ -65,7 +60,7 @@ export function KundeDrawer({ open, kunde, onClose, onSaved }: IKundeDrawerProps
     setError(undefined);
     try {
       const saved = await repo.saveKunde(
-        { name: name.trim(), kundennummer: nummerTrim, adresse: adresse.trim(), stichtagMonat: monat, aktiv: kunde ? kunde.aktiv : true },
+        { name: name.trim(), kundennummer: nummerTrim, adresse: adresse.trim(), aktiv: kunde ? kunde.aktiv : true },
         kunde && kunde.id
       );
       await reload();
@@ -102,22 +97,6 @@ export function KundeDrawer({ open, kunde, onClose, onSaved }: IKundeDrawerProps
           </Field>
           <Field label="Adresse">
             <Textarea value={adresse} rows={3} resize="vertical" onChange={(_, d) => setAdresse(d.value)} />
-          </Field>
-          <Field
-            label="Jährliche Rechnung im"
-            hint="Monatsdienste werden für 12 Monate ab dem 1. dieses Monats verrechnet. Positionen mit eigener Laufzeit (z. B. Domains) kommen mit auf die Rechnung, sobald ihre Verlängerung in diese 12 Monate fällt."
-          >
-            <Dropdown
-              value={MONATE[monat - 1]}
-              selectedOptions={[String(monat)]}
-              onOptionSelect={(_, d) => setMonat(Number(d.optionValue) || 1)}
-            >
-              {MONATE.map((m, i) => (
-                <Option key={m} value={String(i + 1)}>
-                  {m}
-                </Option>
-              ))}
-            </Dropdown>
           </Field>
           {error && (
             <MessageBar intent="error">

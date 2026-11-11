@@ -46,7 +46,6 @@ export const LISTS: IListDef[] = [
     fields: [
       { name: 'Kundennummer', displayName: 'Kundennummer', type: 'Text', required: true, indexed: true, unique: true },
       { name: 'Adresse', displayName: 'Adresse', type: 'Note' },
-      { name: 'StichtagMonat', displayName: 'Stichtag-Monat', type: 'Number', min: 1, max: 12, decimals: 0, defaultValue: '1' },
       { name: 'Aktiv', displayName: 'Aktiv', type: 'Boolean', defaultValue: '1' }
     ]
   },
@@ -57,10 +56,8 @@ export const LISTS: IListDef[] = [
     fields: [
       { name: 'Kunde', displayName: 'Kunde', type: 'Lookup', lookupList: LIST.Kunden, required: true, indexed: true },
       { name: 'Menge', displayName: 'Menge', type: 'Number', defaultValue: '1' },
-      { name: 'Preis', displayName: 'Preis', type: 'Currency' },
-      { name: 'Preisbasis', displayName: 'Preisbasis', type: 'Choice', choices: ['Monat', 'Laufzeit'], defaultValue: 'Monat' },
-      { name: 'LaufzeitMonate', displayName: 'Laufzeit (Monate)', type: 'Number', min: 1, decimals: 0, defaultValue: '1' },
-      { name: 'Abrechnungsmodus', displayName: 'Abrechnungsmodus', type: 'Choice', choices: ['Stichtag', 'Laufzeit'], defaultValue: 'Stichtag' },
+      { name: 'Preis', displayName: 'Jahrespreis', type: 'Currency' },
+      { name: 'LaufzeitMonate', displayName: 'Laufzeit (Monate)', type: 'Number', min: 1, decimals: 0, defaultValue: '12' },
       { name: 'Beginn', displayName: 'Beginn', type: 'DateTime', required: true },
       { name: 'Ende', displayName: 'Ende', type: 'DateTime' }
     ]
@@ -73,7 +70,6 @@ export const LISTS: IListDef[] = [
     fields: [
       { name: 'Kunde', displayName: 'Kunde', type: 'Lookup', lookupList: LIST.Kunden, indexed: true },
       { name: 'Rechnungsdatum', displayName: 'Rechnungsdatum', type: 'DateTime' },
-      { name: 'Stichtag', displayName: 'Verrechnen bis', type: 'DateTime' },
       { name: 'Vorgaenger', displayName: 'Vorgänger', type: 'Lookup', lookupList: LIST.Rechnungen },
       { name: 'Status', displayName: 'Status', type: 'Choice', choices: ['Entwurf', 'Erstellt', 'Storniert'], defaultValue: 'Entwurf' },
       { name: 'SummeNettoCent', displayName: 'Summe netto (Cent)', type: 'Number', decimals: 0 },
@@ -91,7 +87,7 @@ export const LISTS: IListDef[] = [
       { name: 'Bis', displayName: 'Bis', type: 'DateTime' },
       { name: 'Monate', displayName: 'Monate', type: 'Number', decimals: 2 },
       { name: 'Menge', displayName: 'Menge', type: 'Number' },
-      { name: 'EinzelpreisCent', displayName: 'Einzelpreis (Cent)', type: 'Number', decimals: 0 },
+      { name: 'EinzelpreisCent', displayName: 'Jahrespreis je Stück (Cent)', type: 'Number', decimals: 0 },
       { name: 'BetragCent', displayName: 'Betrag (Cent)', type: 'Number', decimals: 0 },
       { name: 'Art', displayName: 'Art', type: 'Choice', choices: ['Folgezeitraum', 'Anteilig', 'Nachverrechnung', 'Einmalig'] }
     ]

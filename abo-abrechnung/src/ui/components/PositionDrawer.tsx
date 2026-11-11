@@ -2,7 +2,6 @@ import * as React from 'react';
 import {
   Button,
   Combobox,
-  Dropdown,
   DrawerBody,
   DrawerFooter,
   DrawerHeader,
@@ -19,8 +18,8 @@ import {
 import { Dismiss24Regular } from '@fluentui/react-icons';
 import { formatDate, isIsoDate } from '../../billing/dates';
 import { formatAmount, parseEuro } from '../../billing/money';
-import { modusFor, verrechnetBis } from '../../billing/proposal';
-import { IPosition, Preisbasis } from '../../billing/types';
+import { verrechnetBis } from '../../billing/proposal';
+import { IPosition } from '../../billing/types';
 import { IKunde, IPositionItem } from '../../data/mapping';
 import { useApp } from '../AppContext';
 import { errorText, useData } from '../DataContext';
@@ -38,25 +37,17 @@ interface IForm {
   title: string;
   menge: string;
   preis: string;
-  preisbasis: Preisbasis;
   laufzeit: string;
   beginn: string;
   ende: string;
 }
 
-const PREISBASIS: { [k in Preisbasis]: string } = { Monat: 'pro Monat', Laufzeit: 'pro Laufzeit' };
-const PREISBASIS_HINT: { [k in Preisbasis]: string } = {
-  Monat: 'Wird jährlich bis zum Rechnungsstichtag verrechnet.',
-  Laufzeit: 'Wird je volle Laufzeit ab Beginn im Voraus verrechnet (z. B. Domains).'
-};
-
 function toForm(p?: IPositionItem): IForm {
   return {
     title: p ? p.title : '',
     menge: p ? String(p.menge).replace('.', ',') : '1',
-    preis: p ? formatAmount(p.preisCent) : '',
-    preisbasis: p ? p.preisbasis : 'Monat',
-    laufzeit: p ? String(p.laufzeitMonate) : '1',
+    preis: p ? formatAmount(p.jahrespreisCent) : '',
+    laufzeit: p ? String(p.laufzeitMonate) : '12',
     beginn: p ? p.beginn : '',
     ende: p && p.ende ? p.ende : ''
   };
@@ -104,7 +95,7 @@ export function PositionDrawer({ open, kunde, position, onClose }: IPositionDraw
   const errors: { [k: string]: string | undefined } = {
     title: !form.title.trim() ? 'Bezeichnung ist erforderlich.' : undefined,
     menge: !(menge > 0) ? 'Menge muss größer als 0 sein.' : undefined,
-    preis: preisCent === null || preisCent < 0 ? 'Preis im Format 9,90 eingeben.' : undefined,
+    preis: preisCent === null || preisCent < 0 ? 'Jahrespreis im Format 24,00 eingeben.' : undefined,
     laufzeit: !(laufzeit >= 1) || Math.round(laufzeit) !== laufzeit ? 'Ganze Monate ab 1 eingeben.' : undefined,
     beginn: !isIsoDate(form.beginn) ? 'Beginn ist erforderlich.' : undefined,
     ende:
@@ -124,20 +115,18 @@ export function PositionDrawer({ open, kunde, position, onClose }: IPositionDraw
         id: position ? position.id : -1,
         title: form.title.trim(),
         menge,
-        preisCent: preisCent as number,
-        preisbasis: form.preisbasis,
+        jahrespreisCent: preisCent as number,
         laufzeitMonate: laufzeit,
-        modus: modusFor(form.preisbasis),
         beginn: form.beginn,
         ende: form.ende || null
       }
     : undefined;
-  const preview = candidate ? previewText(candidate, lines, kunde.stichtagMonat) : '';
+  const preview = candidate ? previewText(candidate, lines) : '';
 
   const applyVorlage = (title: string): void => {
     const v = vorlagen.filter((x) => x.title === title)[0];
     if (!v) return set({ title });
-    set({ title, preis: formatAmount(v.preisCent), preisbasis: v.preisbasis, laufzeit: String(v.laufzeitMonate) });
+    set({ title, preis: formatAmount(v.jahrespreisCent), laufzeit: String(v.laufzeitMonate) });
   };
 
   const save = async (): Promise<void> => {
@@ -176,7 +165,7 @@ export function PositionDrawer({ open, kunde, position, onClose }: IPositionDraw
             save().catch(() => undefined);
           }}
         >
-          <Field label="Bezeichnung" required validationMessage={show('title')} hint="Vorschläge übernehmen Preis, Preisbasis und Laufzeit.">
+          <Field label="Bezeichnung" required validationMessage={show('title')} hint="Vorschläge übernehmen Jahrespreis und Laufzeit.">
             <Combobox
               freeform
               value={form.title}
@@ -196,23 +185,10 @@ export function PositionDrawer({ open, kunde, position, onClose }: IPositionDraw
             <Field label="Menge" validationMessage={show('menge')}>
               <Input inputMode="decimal" value={form.menge} onChange={(_, d) => set({ menge: d.value })} />
             </Field>
-            <Field label="Preis (€)" validationMessage={show('preis')}>
+            <Field label="Jahrespreis (€)" validationMessage={show('preis')}>
               <Input inputMode="decimal" value={form.preis} onChange={(_, d) => set({ preis: d.value })} />
             </Field>
-          </div>
-
-          <div className={shared.formRow}>
-            <Field label="Preisbasis" hint={PREISBASIS_HINT[form.preisbasis]} style={{ flexGrow: 2, flexBasis: '220px' }}>
-              <Dropdown
-                value={PREISBASIS[form.preisbasis]}
-                selectedOptions={[form.preisbasis]}
-                onOptionSelect={(_, d) => set({ preisbasis: d.optionValue as Preisbasis })}
-              >
-                <Option value="Monat">{PREISBASIS.Monat}</Option>
-                <Option value="Laufzeit">{PREISBASIS.Laufzeit}</Option>
-              </Dropdown>
-            </Field>
-            <Field label="Laufzeit (Monate)" validationMessage={show('laufzeit')}>
+            <Field label="Laufzeit (Monate)" validationMessage={show('laufzeit')} hint="Länge eines Folgezeitraums">
               <Input type="number" min={1} value={form.laufzeit} onChange={(_, d) => set({ laufzeit: d.value })} />
             </Field>
           </div>

@@ -73,7 +73,7 @@ export function CustomerList({ tab, onTab, onOpen, rechnungen }: ICustomerListPr
   const rows = summaries.filter(
     (x) =>
       (!q || x.kunde.name.toLowerCase().indexOf(q) >= 0 || x.kunde.kundennummer.toLowerCase().indexOf(q) >= 0) &&
-      (filter === 'alle' || (filter === 'faellig') === x.faellig)
+      (filter === 'alle' || (filter === 'faellig') === x.offen)
   );
 
   return (

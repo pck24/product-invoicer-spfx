@@ -58,7 +58,7 @@ export function Timeline({ proposals, lines, today }: ITimelineProps): React.Rea
         tooltip: `${l.rechnungsnummer || ''}${l.status === 'Entwurf' ? ' (Entwurf)' : ''} · ${formatDate(l.von)} – ${formatDate(l.bis)} · ${formatEuro(l.betragCent || 0)}`
       });
     }
-    for (const seg of p.segments) {
+    for (const seg of p.status === 'faellig' ? p.segments : []) {
       bars.push({
         key: `p${seg.von}`,
         von: seg.von,

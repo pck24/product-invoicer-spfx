@@ -42,6 +42,7 @@ describe('Provisionierungsplan', () => {
     expect(fieldSchemaXml(kunde, 'ABC')).toContain('List="{ABC}" ShowField="Title"');
     expect(() => fieldSchemaXml(kunde)).toThrow();
     const art = LISTS[3].fields.filter((f) => f.name === 'Art')[0];
+    expect(LISTS[1].fields.map((f) => f.name)).toEqual(['Kunde', 'Menge', 'Preis', 'LaufzeitMonate', 'Beginn', 'Ende']);
     expect(fieldSchemaXml(art)).toContain('<CHOICE>Folgezeitraum</CHOICE><CHOICE>Anteilig</CHOICE>');
     const beginn = LISTS[1].fields.filter((f) => f.name === 'Beginn')[0];
     expect(fieldSchemaXml(beginn)).toContain('Format="DateOnly"');
@@ -70,19 +71,17 @@ describe('Datumsfelder', () => {
 });
 
 describe('Mapping', () => {
-  it('Position hin und zurück, Preis in Cent', () => {
-    const item = positionToItem({
-      kundeId: 3, title: 'Cloud-Backup', menge: 1, preisCent: 990, preisbasis: 'Monat', laufzeitMonate: 1, modus: 'Stichtag', beginn: '2026-08-01', ende: null
-    });
-    expect(item.Preis).toBe(9.9);
-    const back = positionFromItem({ ...item, Id: 7, Beginn: '2026-07-31T22:00:00Z', Preis: 9.9 });
-    expect(back).toMatchObject({ id: 7, kundeId: 3, preisCent: 990, beginn: '2026-08-01', ende: null });
+  it('Position hin und zurück, Jahrespreis in Cent', () => {
+    const item = positionToItem({ kundeId: 3, title: 'Cloud-Backup', menge: 1, jahrespreisCent: 11880, laufzeitMonate: 12, beginn: '2026-08-01', ende: null });
+    expect(item.Preis).toBe(118.8);
+    const back = positionFromItem({ ...item, Id: 7, Beginn: '2026-07-31T22:00:00Z' });
+    expect(back).toMatchObject({ id: 7, kundeId: 3, jahrespreisCent: 11880, laufzeitMonate: 12, beginn: '2026-08-01', ende: null });
   });
 
   it('verknüpft Rechnungspositionen mit dem Rechnungsstatus', () => {
     const lines = toBilledLines(
       [{ id: 1, rechnungId: 10, positionId: 5, title: 'x', von: '2027-01-01', bis: '2027-12-31', monateX100: 1200, menge: 1, einzelpreisCent: 100, betragCent: 1200, art: 'Folgezeitraum' }],
-      [{ id: 10, nummer: 'RE-2027-001', kundeId: 1, rechnungsdatum: null, stichtag: null, vorgaengerId: null, status: 'Storniert', summeNettoCent: 0, pdfUrl: null }]
+      [{ id: 10, nummer: 'RE-2027-001', kundeId: 1, rechnungsdatum: null, vorgaengerId: null, status: 'Storniert', summeNettoCent: 0, pdfUrl: null }]
     );
     expect(lines).toEqual([{ positionId: 5, von: '2027-01-01', bis: '2027-12-31', status: 'Storniert', rechnungId: 10, rechnungsnummer: 'RE-2027-001', betragCent: 1200 }]);
   });

@@ -23,7 +23,7 @@ import { formatEuro } from '../../billing/money';
 import { IPositionItem, IRechnung } from '../../data/mapping';
 import { useApp } from '../AppContext';
 import { errorText, useData } from '../DataContext';
-import { BadgeColor, isGekuendigt, laufzeitText, naechsterZeitraum, preisText, stichtagText } from '../derive';
+import { BadgeColor, isGekuendigt, laufzeitText, naechsterZeitraum, preisText } from '../derive';
 import { ConfirmDialog, IConfirmRequest } from '../components/ConfirmDialog';
 import { KuendigenDialog } from '../components/KuendigenDialog';
 import { KundeDrawer } from '../components/KundeDrawer';
@@ -97,15 +97,16 @@ export function CustomerDetail({ kundeId, onFolgerechnung }: ICustomerDetailProp
               <span className={shared.chip}>{kunde.kundennummer}</span>
               {!kunde.aktiv && <StatusBadge color="informative" text="inaktiv" />}
             </div>
-            <p className={shared.muted} style={{ margin: 0 }}>
-              Abrechnung jährlich zum {stichtagText(kunde.stichtagMonat)}
-              {kunde.adresse && ` · ${kunde.adresse.replace(/\s*\n\s*/g, ', ')}`}
-            </p>
+            {kunde.adresse && (
+              <p className={shared.muted} style={{ margin: 0 }}>
+                {kunde.adresse.replace(/\s*\n\s*/g, ', ')}
+              </p>
+            )}
           </div>
           <div className={shared.row}>
             <Button onClick={() => setKundeDrawer(true)}>Bearbeiten</Button>
             <Button onClick={() => setPositionDrawer({ open: true })}>+ Position</Button>
-            <Button appearance="primary" disabled={!summary.faellig} onClick={onFolgerechnung}>
+            <Button appearance="primary" disabled={!summary.rechnungMoeglich} onClick={onFolgerechnung}>
               {rechnungen.some((r) => r.status !== 'Storniert') ? 'Folgerechnung erstellen' : 'Erste Rechnung erstellen'}
             </Button>
           </div>
@@ -125,7 +126,7 @@ export function CustomerDetail({ kundeId, onFolgerechnung }: ICustomerDetailProp
               <TableRow>
                 <TableHeaderCell>Produkt</TableHeaderCell>
                 <TableHeaderCell className={shared.num}>Menge</TableHeaderCell>
-                <TableHeaderCell className={shared.num}>Preis</TableHeaderCell>
+                <TableHeaderCell className={shared.num}>Jahrespreis</TableHeaderCell>
                 <TableHeaderCell>Laufzeit</TableHeaderCell>
                 <TableHeaderCell>Vertrag von – bis</TableHeaderCell>
                 <TableHeaderCell>Verrechnet bis</TableHeaderCell>
@@ -169,7 +170,10 @@ export function CustomerDetail({ kundeId, onFolgerechnung }: ICustomerDetailProp
                     <TableCell className={shared.num} style={{ textAlign: 'left' }}>
                       {p.verrechnetBis ? formatDate(p.verrechnetBis) : <span className={shared.muted}>noch nie</span>}
                     </TableCell>
-                    <TableCell className={mergeClasses(shared.num, next.tone === 'due' ? shared.due : next.tone === 'ok' ? shared.ok : undefined)} style={{ textAlign: 'left' }}>
+                    <TableCell
+                      className={mergeClasses(shared.num, next.tone === 'due' ? shared.due : next.tone === 'ok' ? shared.ok : next.tone === 'new' ? shared.muted : undefined)}
+                      style={{ textAlign: 'left' }}
+                    >
                       {next.text}
                     </TableCell>
                     <TableCell>

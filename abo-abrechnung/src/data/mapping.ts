@@ -1,5 +1,4 @@
 /** Umwandlung zwischen SharePoint-Listenelementen und dem Domänenmodell (ohne SharePoint-Abhängigkeit). */
-import { modusFor } from '../billing/proposal';
 import { Art, IBilledLine, IPosition, ISODate, RechnungsStatus } from '../billing/types';
 
 export interface IKunde {
@@ -7,7 +6,6 @@ export interface IKunde {
   name: string;
   kundennummer: string;
   adresse: string;
-  stichtagMonat: number;
   aktiv: boolean;
 }
 
@@ -20,7 +18,6 @@ export interface IRechnung {
   nummer: string;
   kundeId: number | null;
   rechnungsdatum: ISODate | null;
-  stichtag: ISODate | null;
   vorgaengerId: number | null;
   status: RechnungsStatus;
   summeNettoCent: number;
@@ -65,9 +62,9 @@ export function toCent(euro: number | null | undefined): number {
   return euro === null || euro === undefined ? 0 : Math.round(euro * 100);
 }
 
-export const KUNDE_FIELDS = ['Id', 'Title', 'Kundennummer', 'Adresse', 'StichtagMonat', 'Aktiv'];
-export const POSITION_FIELDS = ['Id', 'Title', 'KundeId', 'Menge', 'Preis', 'Preisbasis', 'LaufzeitMonate', 'Abrechnungsmodus', 'Beginn', 'Ende'];
-export const RECHNUNG_FIELDS = ['Id', 'Title', 'KundeId', 'Rechnungsdatum', 'Stichtag', 'VorgaengerId', 'Status', 'SummeNettoCent', 'PdfLink'];
+export const KUNDE_FIELDS = ['Id', 'Title', 'Kundennummer', 'Adresse', 'Aktiv'];
+export const POSITION_FIELDS = ['Id', 'Title', 'KundeId', 'Menge', 'Preis', 'LaufzeitMonate', 'Beginn', 'Ende'];
+export const RECHNUNG_FIELDS = ['Id', 'Title', 'KundeId', 'Rechnungsdatum', 'VorgaengerId', 'Status', 'SummeNettoCent', 'PdfLink'];
 export const RECHNUNGSPOSITION_FIELDS = ['Id', 'Title', 'RechnungId', 'PositionId', 'Von', 'Bis', 'Monate', 'Menge', 'EinzelpreisCent', 'BetragCent', 'Art'];
 
 export function kundeFromItem(i: SPItem): IKunde {
@@ -76,27 +73,22 @@ export function kundeFromItem(i: SPItem): IKunde {
     name: i.Title || '',
     kundennummer: i.Kundennummer || '',
     adresse: i.Adresse || '',
-    stichtagMonat: i.StichtagMonat || 1,
     aktiv: i.Aktiv !== false
   };
 }
 
 export function kundeToItem(k: Omit<IKunde, 'id'>): SPItem {
-  return { Title: k.name, Kundennummer: k.kundennummer, Adresse: k.adresse, StichtagMonat: k.stichtagMonat, Aktiv: k.aktiv };
+  return { Title: k.name, Kundennummer: k.kundennummer, Adresse: k.adresse, Aktiv: k.aktiv };
 }
 
 export function positionFromItem(i: SPItem): IPositionItem {
-  const preisbasis = i.Preisbasis === 'Laufzeit' ? 'Laufzeit' : 'Monat';
   return {
     id: i.Id,
     kundeId: i.KundeId,
     title: i.Title || '',
     menge: i.Menge === null || i.Menge === undefined ? 1 : i.Menge,
-    preisCent: toCent(i.Preis),
-    preisbasis,
-    laufzeitMonate: i.LaufzeitMonate || 1,
-    // Der Modus folgt immer der Preisbasis (siehe DECISIONS.md); die Spalte dient nur der Transparenz.
-    modus: modusFor(preisbasis),
+    jahrespreisCent: toCent(i.Preis),
+    laufzeitMonate: i.LaufzeitMonate || 12,
     beginn: fromSpDate(i.Beginn) || '',
     ende: fromSpDate(i.Ende)
   };
@@ -107,10 +99,8 @@ export function positionToItem(p: Omit<IPositionItem, 'id'>): SPItem {
     Title: p.title,
     KundeId: p.kundeId,
     Menge: p.menge,
-    Preis: p.preisCent / 100,
-    Preisbasis: p.preisbasis,
+    Preis: p.jahrespreisCent / 100,
     LaufzeitMonate: p.laufzeitMonate,
-    Abrechnungsmodus: modusFor(p.preisbasis),
     Beginn: toSpDate(p.beginn),
     Ende: toSpDate(p.ende)
   };
@@ -126,7 +116,6 @@ export function rechnungFromItem(i: SPItem): IRechnung {
     nummer: i.Title || '',
     kundeId: i.KundeId || null,
     rechnungsdatum: fromSpDate(i.Rechnungsdatum),
-    stichtag: fromSpDate(i.Stichtag),
     vorgaengerId: i.VorgaengerId || null,
     status: status(i.Status),
     summeNettoCent: i.SummeNettoCent || 0,
@@ -139,7 +128,6 @@ export function rechnungToItem(r: Omit<IRechnung, 'id' | 'pdfUrl'>): SPItem {
     Title: r.nummer,
     KundeId: r.kundeId,
     Rechnungsdatum: toSpDate(r.rechnungsdatum),
-    Stichtag: toSpDate(r.stichtag),
     VorgaengerId: r.vorgaengerId,
     Status: r.status,
     SummeNettoCent: r.summeNettoCent
