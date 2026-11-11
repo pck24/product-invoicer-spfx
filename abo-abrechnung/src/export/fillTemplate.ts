@@ -32,7 +32,13 @@ export function fillTemplate(template: ArrayBuffer, data: ITemplateData): IFillR
   } catch (e) {
     throw new Error(`Die Word-Vorlage ist fehlerhaft: ${describe(e)}`);
   }
-  const content = doc.getZip().generate({ type: 'arraybuffer', compression: 'DEFLATE' }) as ArrayBuffer;
+  const zip = doc.getZip();
+  // Ordner-Einträge entfernen (z. B. aus in Word/SharePoint gespeicherten Vorlagen):
+  // Pakete mit Ordner-Einträgen werden von der Online-Konvertierung (Graph-PDF) nicht korrekt geöffnet.
+  for (const name of Object.keys(zip.files)) {
+    if (zip.files[name].dir) delete zip.files[name];
+  }
+  const content = zip.generate({ type: 'arraybuffer', compression: 'DEFLATE' }) as ArrayBuffer;
   return { content, warnings };
 }
 

@@ -175,9 +175,10 @@ export function timelineXml(input: IExportInput): string {
 
   const grid = `<w:tblGrid><w:gridCol w:w="${LABEL_WIDTH}"/>${widths.map((w) => `<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>`;
   const tblPr =
-    `<w:tblPr><w:tblW w:w="${TEXT_WIDTH}" w:type="dxa"/><w:tblLayout w:type="fixed"/>` +
+    // Reihenfolge laut Schema: tblW, tblBorders, tblLayout, tblCellMar
+    `<w:tblPr><w:tblW w:w="${TEXT_WIDTH}" w:type="dxa"/>` +
     `<w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="${COLOR_GRID}"/><w:right w:val="nil"/><w:insideH w:val="single" w:sz="4" w:space="0" w:color="FFFFFF"/><w:insideV w:val="nil"/></w:tblBorders>` +
-    `<w:tblCellMar><w:top w:w="20" w:type="dxa"/><w:left w:w="60" w:type="dxa"/><w:bottom w:w="20" w:type="dxa"/><w:right w:w="60" w:type="dxa"/></w:tblCellMar></w:tblPr>`;
+    `<w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="20" w:type="dxa"/><w:left w:w="60" w:type="dxa"/><w:bottom w:w="20" w:type="dxa"/><w:right w:w="60" w:type="dxa"/></w:tblCellMar></w:tblPr>`;
 
   // Kopfzeile mit Jahren
   let head = `<w:tr><w:trPr><w:tblHeader/></w:trPr>${cell(LABEL_WIDTH, run('Position', { bold: true }))}`;

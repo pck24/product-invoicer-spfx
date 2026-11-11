@@ -81,7 +81,7 @@ describe('Beispielvorlage befüllen', () => {
     expect(r.warnings).toEqual([]);
     expect(t).toContain('Leistungsaufstellung');
     expect(t).toContain('zu Rechnung 2027-001 vom 08.01.2027');
-    expect(t).toContain('Schließt an Rechnung RE-2026-004 vom 12.01.2026 an.');
+    expect(t).not.toContain('Schließt an');
     expect(t).toContain('Hauptstraße 12');
     expect(t).toContain('750,00 €');
     expect(t).toContain('1.130,76 €');
@@ -109,8 +109,13 @@ describe('Beispielvorlage befüllen', () => {
     expect(r.warnings).toEqual(['gibtsNicht']);
   });
 
-  it('ohne Vorgänger entfällt der Hinweis', () => {
-    const t = text(fillTemplate(ab, buildTemplateData({ ...input, vorgaenger: undefined }, 'mitKosten')).content);
-    expect(t).not.toContain('Schließt an');
+  it('Ergebnis enthält keine Ordner-Einträge (sonst scheitert die Online-PDF-Konvertierung)', () => {
+    const out = new PizZip(fillTemplate(ab, buildTemplateData(input, 'mitKosten')).content);
+    expect(Object.keys(out.files).filter((n) => out.files[n].dir)).toEqual([]);
+  });
+
+  it('Tabelleneigenschaften in Schema-Reihenfolge (tblBorders vor tblLayout)', () => {
+    const xml = timelineXml(input);
+    expect(xml.indexOf('<w:tblBorders>')).toBeLessThan(xml.indexOf('<w:tblLayout'));
   });
 });

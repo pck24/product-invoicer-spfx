@@ -2,7 +2,7 @@
 // Aufruf: node build-template.js <Briefpapier.dotx> <Ziel.docx> <pfad/zu/pizzip>
 const fs = require('fs');
 const [, , src, dest, pizzipPath] = process.argv;
-const PizZip = require(pizzipPath);
+const PizZip = require(require('path').resolve(pizzipPath));
 
 const zip = new PizZip(fs.readFileSync(src));
 
@@ -42,10 +42,11 @@ function tc(width, content, o = {}) {
 }
 function table(widths, rows) {
   const tblPr =
-    `<w:tblPr><w:tblW w:w="${TEXT}" w:type="dxa"/><w:tblLayout w:type="fixed"/>` +
+    // Reihenfolge laut Schema: tblW, tblBorders, tblLayout, tblCellMar (Online-Konvertierung ist streng)
+    `<w:tblPr><w:tblW w:w="${TEXT}" w:type="dxa"/>` +
     '<w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="BFBFBF"/><w:right w:val="nil"/>' +
     '<w:insideH w:val="single" w:sz="4" w:space="0" w:color="E0E0E0"/><w:insideV w:val="nil"/></w:tblBorders>' +
-    '<w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr>';
+    '<w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr>';
   const grid = `<w:tblGrid>${widths.map((w) => `<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>`;
   return `<w:tbl>${tblPr}${grid}${rows.join('')}</w:tbl>`;
 }
@@ -71,8 +72,7 @@ body.push(p(r('{kundenadresse}'), { after: 0 }));
 body.push(p(r('Kundennummer {kundennummer}', { color: '616161', size: 20 }), { after: 480 }));
 // Titel und Bezug
 body.push(p(r('{titel}', { bold: true, size: 36 }), { after: 60, keepNext: true }));
-body.push(p(r('zu Rechnung {rechnungsnummer} vom {rechnungsdatum}'), { after: 0 }));
-body.push(p(r('{#vorgaenger}Schließt an Rechnung {vorgaenger} an.{/vorgaenger}', { color: '616161', size: 20 }), { after: 360 }));
+body.push(p(r('zu Rechnung {rechnungsnummer} vom {rechnungsdatum}'), { after: 360 }));
 
 // Variante mit Kosten
 const wK = [2826, 1150, 1150, 800, 700, 1150, 1250];
@@ -115,5 +115,9 @@ body.push(
 );
 
 zip.file('word/document.xml', `${open}${body.join('')}${sectPr}</w:body></w:document>`);
+// Ordner-Einträge entfernen: Cloud-Dienste (Office Online, Graph-PDF) lehnen solche Pakete ab
+Object.keys(zip.files)
+  .filter((n) => zip.files[n].dir)
+  .forEach((n) => delete zip.files[n]);
 fs.writeFileSync(dest, zip.generate({ type: 'nodebuffer', compression: 'DEFLATE' }));
 console.log('geschrieben:', dest);
