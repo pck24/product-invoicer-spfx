@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow, makeStyles, mergeClasses, tokens } from '@fluentui/react-components';
 import { formatDate } from '../../billing/dates';
 import { formatEuro, formatMonate, formatZahl, totals } from '../../billing/money';
-import { IRechnung } from '../../data/mapping';
+import { IRechnung, IRechnungsposition } from '../../data/mapping';
 import { timelineRows } from '../../export/timelineModel';
 import { useApp } from '../AppContext';
 import { useData } from '../DataContext';
@@ -13,6 +13,9 @@ import { ITimelineRow, Timeline } from '../components/Timeline';
 import { TotalsBlock } from '../components/TotalsBlock';
 import { useShared } from '../styles';
 import { buildExportInput } from '../useExport';
+import { useSort } from '../useSort';
+
+const KEINE_ZEILEN: IRechnungsposition[] = [];
 
 const useStyles = makeStyles({
   meta: { display: 'flex', flexWrap: 'wrap', gap: '8px 24px', margin: 0 },
@@ -34,8 +37,19 @@ export function InvoiceView({ rechnungId, onEditDraft, onBack }: IInvoiceViewPro
   const { settings } = useApp();
   const { data } = useData();
   const input = data ? buildExportInput(data, rechnungId, settings.ustSatz) : undefined;
+  // Sortierung der Tabelle gilt auch für die Zeitleiste
+  const { sorted: lines, header } = useSort(input ? input.lines : KEINE_ZEILEN, {
+    position: (l) => l.title,
+    von: (l) => l.von,
+    bis: (l) => l.bis,
+    monate: (l) => (l.positionId !== null ? l.monateX100 : null),
+    menge: (l) => l.menge,
+    preis: (l) => (l.positionId !== null ? l.einzelpreisCent : null),
+    betrag: (l) => l.betragCent,
+    art: (l) => l.art
+  });
   if (!input) return <p>Rechnung nicht gefunden.</p>;
-  const { rechnung: r, kunde, vorgaenger, lines, ustSatz } = input;
+  const { rechnung: r, kunde, vorgaenger, ustSatz } = input;
   const t = totals(lines.map((l) => l.betragCent), ustSatz);
 
   // Zeitleiste: je Position dieser Rechnung alle verrechneten Zeiträume, diese Rechnung hervorgehoben
@@ -89,17 +103,25 @@ export function InvoiceView({ rechnungId, onEditDraft, onBack }: IInvoiceViewPro
           </h2>
         </div>
         <div className={shared.tableWrap}>
-          <Table className={shared.table} aria-label="Positionen der Rechnung">
+          <Table className={shared.table} aria-label="Positionen der Rechnung" sortable>
             <TableHeader>
               <TableRow>
-                <TableHeaderCell>Position</TableHeaderCell>
-                <TableHeaderCell>Von</TableHeaderCell>
-                <TableHeaderCell>Bis</TableHeaderCell>
-                <TableHeaderCell className={mergeClasses(shared.num, shared.numHead)}>Monate</TableHeaderCell>
-                <TableHeaderCell className={mergeClasses(shared.num, shared.numHead)}>Menge</TableHeaderCell>
-                <TableHeaderCell className={mergeClasses(shared.num, shared.numHead)}>Jahrespreis</TableHeaderCell>
-                <TableHeaderCell className={mergeClasses(shared.num, shared.numHead)}>Betrag</TableHeaderCell>
-                <TableHeaderCell>Art</TableHeaderCell>
+                <TableHeaderCell {...header('position')}>Position</TableHeaderCell>
+                <TableHeaderCell {...header('von')}>Von</TableHeaderCell>
+                <TableHeaderCell {...header('bis')}>Bis</TableHeaderCell>
+                <TableHeaderCell {...header('monate')} className={mergeClasses(shared.num, shared.numHead)}>
+                  Monate
+                </TableHeaderCell>
+                <TableHeaderCell {...header('menge')} className={mergeClasses(shared.num, shared.numHead)}>
+                  Menge
+                </TableHeaderCell>
+                <TableHeaderCell {...header('preis')} className={mergeClasses(shared.num, shared.numHead)}>
+                  Jahrespreis
+                </TableHeaderCell>
+                <TableHeaderCell {...header('betrag')} className={mergeClasses(shared.num, shared.numHead)}>
+                  Betrag
+                </TableHeaderCell>
+                <TableHeaderCell {...header('art')}>Art</TableHeaderCell>
               </TableRow>
             </TableHeader>
             <TableBody>

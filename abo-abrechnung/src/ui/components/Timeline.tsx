@@ -11,7 +11,8 @@ const useStyles = makeStyles({
   swatch: { width: '18px', height: '10px', borderRadius: '2px', boxSizing: 'border-box' },
   body: { padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: '10px', '@media (max-width: 640px)': { minWidth: '600px' } },
   row: { display: 'flex', gap: '16px', alignItems: 'center' },
-  label: { width: '180px', flex: 'none', fontWeight: tokens.fontWeightSemibold, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  // Bezeichnungen bekommen bis zu 40 % der Breite, die Balken rücken zusammen
+  label: { flex: '0 0 40%', maxWidth: '440px', minWidth: '160px', fontWeight: tokens.fontWeightSemibold, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   years: { flex: 1, position: 'relative', height: '18px', color: tokens.colorNeutralForeground3, fontSize: '12px' },
   year: { position: 'absolute', top: 0, paddingLeft: '6px', ...shorthands.borderLeft('1px', 'solid', tokens.colorNeutralStroke2) },
   track: { flex: 1, position: 'relative', height: '22px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: '3px' },
