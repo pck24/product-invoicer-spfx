@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { Link, Toast, ToastBody, ToastTitle, Toaster, useId, useToastController } from '@fluentui/react-components';
+import { todayIso } from '../billing/dates';
 import { IBilledLine } from '../billing/types';
 import { IKunde, IPositionItem, IRechnung, IRechnungsposition, toBilledLines } from '../data/mapping';
 import { useApp } from './AppContext';
+import { ICustomerSummary, summarizeAll } from './derive';
 
 export interface IAppData {
   kunden: IKunde[];
@@ -10,14 +12,49 @@ export interface IAppData {
   rechnungen: IRechnung[];
   rechnungspositionen: IRechnungsposition[];
   billedLines: IBilledLine[];
+  /** Nachschlagetabellen, einmal je Datenstand aufgebaut */
+  kundeById: { [id: number]: IKunde };
+  rechnungById: { [id: number]: IRechnung };
+  zeilenJeRechnung: { [rechnungId: number]: IRechnungsposition[] };
+  /** Positionen, auf die mindestens eine Rechnungsposition verweist (auch storniert) */
+  positionMitZeilen: { [positionId: number]: boolean };
+}
+
+/** Baut die abgeleiteten Daten und Nachschlagetabellen. */
+export function indexData(kunden: IKunde[], positionen: IPositionItem[], rechnungen: IRechnung[], rechnungspositionen: IRechnungsposition[]): IAppData {
+  const kundeById: IAppData['kundeById'] = {};
+  for (const k of kunden) kundeById[k.id] = k;
+  const rechnungById: IAppData['rechnungById'] = {};
+  for (const r of rechnungen) rechnungById[r.id] = r;
+  const zeilenJeRechnung: IAppData['zeilenJeRechnung'] = {};
+  const positionMitZeilen: IAppData['positionMitZeilen'] = {};
+  for (const l of rechnungspositionen) {
+    if (l.rechnungId !== null) (zeilenJeRechnung[l.rechnungId] = zeilenJeRechnung[l.rechnungId] || []).push(l);
+    if (l.positionId !== null) positionMitZeilen[l.positionId] = true;
+  }
+  return {
+    kunden,
+    positionen,
+    rechnungen,
+    rechnungspositionen,
+    billedLines: toBilledLines(rechnungspositionen, rechnungen),
+    kundeById,
+    rechnungById,
+    zeilenJeRechnung,
+    positionMitZeilen
+  };
 }
 
 export interface IDataContext {
   data: IAppData | undefined;
+  /** Zusammenfassung aller Kunden (heute), einmal je Datenstand berechnet */
+  summaries: ICustomerSummary[];
   loading: boolean;
   error: string | undefined;
   /** lädt neu und liefert die frischen Daten */
   reload: () => Promise<IAppData | undefined>;
+  /** ändert eine Rechnung nur lokal (nach einem bereits gespeicherten Update), ohne neu zu laden */
+  patchRechnung: (id: number, patch: Partial<IRechnung>) => void;
   notify: (title: string, intent?: 'success' | 'error' | 'info' | 'warning', link?: IToastLink) => void;
 }
 
@@ -59,7 +96,7 @@ export function DataProvider({ children }: { children: React.ReactNode }): React
         repo.getRechnungspositionen()
       ]);
       kunden.sort((a, b) => a.kundennummer.localeCompare(b.kundennummer));
-      const fresh = { kunden, positionen, rechnungen, rechnungspositionen, billedLines: toBilledLines(rechnungspositionen, rechnungen) };
+      const fresh = indexData(kunden, positionen, rechnungen, rechnungspositionen);
       setData(fresh);
       return fresh;
     } catch (e) {
@@ -99,7 +136,21 @@ export function DataProvider({ children }: { children: React.ReactNode }): React
     [dispatchToast]
   );
 
-  const value = React.useMemo(() => ({ data, loading, error, reload, notify }), [data, loading, error, reload, notify]);
+  const patchRechnung = React.useCallback((id: number, patch: Partial<IRechnung>) => {
+    setData((d) =>
+      d ? indexData(d.kunden, d.positionen, d.rechnungen.map((r) => (r.id === id ? { ...r, ...patch } : r)), d.rechnungspositionen) : d
+    );
+  }, []);
+
+  const summaries = React.useMemo(
+    () => (data ? summarizeAll(data.kunden, data.positionen, data.rechnungen, data.billedLines, todayIso()) : []),
+    [data]
+  );
+
+  const value = React.useMemo(
+    () => ({ data, summaries, loading, error, reload, patchRechnung, notify }),
+    [data, summaries, loading, error, reload, patchRechnung, notify]
+  );
   return (
     <Ctx.Provider value={value}>
       {children}

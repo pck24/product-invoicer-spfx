@@ -97,9 +97,11 @@ export const LISTS: IListDef[] = [
   }
 ];
 
-function esc(s: string): string {
+/** Text für XML-Attribute und -Inhalte (Feldschema, Word-Dokument). */
+export function escapeXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+const esc = escapeXml;
 
 /** CAML-Feldschema für createFieldAsXml. lookupListId ist bei Lookup-Feldern Pflicht. */
 export function fieldSchemaXml(f: IFieldDef, lookupListId?: string): string {

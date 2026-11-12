@@ -73,3 +73,8 @@ export function formatMonate(monateX100: number): string {
   if (monateX100 % 100 === 0) return String(monateX100 / 100);
   return formatAmount(monateX100);
 }
+
+/** Dezimalzahl mit bis zu 2 Stellen: 5 → "5", 20.5 → "20,5", 1500 → "1.500" */
+export function formatZahl(value: number): string {
+  return formatAmount(Math.round(value * 100)).replace(/,00$/, '').replace(/(,\d)0$/, '$1');
+}

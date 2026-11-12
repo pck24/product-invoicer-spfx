@@ -147,7 +147,8 @@ export function rechnungToItem(r: Omit<IRechnung, 'id' | 'pdfUrl'>): SPItem {
 }
 
 export function rechnungspositionFromItem(i: SPItem): IRechnungsposition {
-  const art: Art = ['Folgezeitraum', 'Anteilig', 'Nachverrechnung'].indexOf(i.Art) >= 0 ? i.Art : 'Einmalig';
+  // "Nachverrechnung" (Altwert der Liste) ist ein normaler Zeitraum
+  const art: Art = i.Art === 'Anteilig' ? 'Anteilig' : i.Art === 'Folgezeitraum' || i.Art === 'Nachverrechnung' ? 'Folgezeitraum' : 'Einmalig';
   return {
     id: i.Id,
     rechnungId: i.RechnungId || null,

@@ -1,4 +1,4 @@
-import { addDays, addMonths, differenceInCalendarDays, format } from 'date-fns';
+import { addDays, addMonths, differenceInCalendarDays } from 'date-fns';
 import { ISODate } from './types';
 
 const ISO_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -22,7 +22,13 @@ export function toDate(value: ISODate): Date {
 }
 
 export function fromDate(d: Date): ISODate {
-  return format(d, 'yyyy-MM-dd');
+  const y = String(d.getFullYear());
+  return `${'0000'.substring(y.length)}${y}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+/** Jahr eines ISO-Datums als Zahl. */
+export function yearOf(value: ISODate): number {
+  return Number(value.substring(0, 4));
 }
 
 export function addDaysIso(value: ISODate, days: number): ISODate {

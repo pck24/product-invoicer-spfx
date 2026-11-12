@@ -1,18 +1,21 @@
 import { addDaysIso, addMonthsIso, minIso } from './dates';
 import { lineAmountCent } from './money';
-import { anchorIndex, horizon, monthsX100 } from './periods';
+import { horizon, monthsX100, resolveAnchor } from './periods';
 import { Art, IBilledLine, IPosition, ISODate } from './types';
 
 /**
  * neu          – noch nie verrechnet; der erste Zeitraum wird frei gewählt
  * faellig      – nächster Zeitraum läuft bereits oder beginnt spätestens 3 Monate nach dem Rechnungsdatum
  * nichtFaellig – nächster Zeitraum beginnt später (kann trotzdem dazugenommen werden)
- * entfaellt    – bis zum Leistungsende verrechnet
+ * entfaellt    – bis zum Kündigungsdatum verrechnet
  */
 export type PositionStatus = 'neu' | 'faellig' | 'nichtFaellig' | 'entfaellt';
 
+/** Anzeige- und Vorschlagsreihenfolge der Status. */
+export const STATUS_ORDER: PositionStatus[] = ['faellig', 'neu', 'nichtFaellig', 'entfaellt'];
+
 export interface ISegment {
-  positionId: number | null;
+  positionId: number;
   title: string;
   von: ISODate;
   bis: ISODate;
@@ -22,25 +25,16 @@ export interface ISegment {
   einzelpreisCent: number;
   betragCent: number;
   art: Art;
-  hinweis: string;
 }
 
-export interface IPositionProposal {
-  position: IPosition;
+export interface IPositionProposal<P extends IPosition = IPosition> {
+  position: P;
   verrechnetBis: ISODate | null;
   /** nächster offener Tag; null = noch nie verrechnet */
   nextStart: ISODate | null;
   status: PositionStatus;
-  /** nächster Zeitraum (höchstens einer); auch bei nichtFaellig vorhanden, damit er dazugenommen werden kann */
-  segments: ISegment[];
-}
-
-export interface IInvoiceProposal {
-  rechnungsdatum: ISODate;
-  /** fällig, neu, nicht fällig, entfällt */
-  positions: IPositionProposal[];
-  /** nur die fälligen Zeiträume (vorausgewählt) */
-  segments: ISegment[];
+  /** nächster Zeitraum; auch bei nichtFaellig vorhanden, damit er dazugenommen werden kann */
+  next: ISegment | null;
 }
 
 /** Zählt nur Rechnungen im Status Entwurf oder Erstellt. */
@@ -71,26 +65,23 @@ export function firstBilled(positionId: number, lines: IBilledLine[]): ISODate |
   return min;
 }
 
+/** Fällig, wenn der Zeitraum bereits läuft oder spätestens 3 Monate nach dem Rechnungsdatum beginnt. */
+export function statusFor(start: ISODate, rechnungsdatum: ISODate): 'faellig' | 'nichtFaellig' {
+  return start <= horizon(rechnungsdatum) ? 'faellig' : 'nichtFaellig';
+}
+
+/** Anteilig, wenn der Zeitraum am Kündigungsdatum endet und kürzer als die Laufzeit ist. */
+export function artFor(position: IPosition, bis: ISODate, monateX100: number): Art {
+  return position.ende && bis === position.ende && monateX100 < Math.max(1, position.laufzeitMonate) * 100 ? 'Anteilig' : 'Folgezeitraum';
+}
+
 /** Monate und Betrag für einen Zeitraum einer Position. */
 export function computeLine(position: IPosition, von: ISODate, bis: ISODate, anchor?: ISODate): { monateX100: number; betragCent: number } {
   const m = monthsX100(von, bis, anchor);
   return { monateX100: m, betragCent: lineAmountCent(position.jahrespreisCent, position.menge, m) };
 }
 
-export function hinweisFor(art: Art): string {
-  switch (art) {
-    case 'Folgezeitraum':
-      return 'Folgezeitraum';
-    case 'Anteilig':
-      return 'anteilig bis Kündigungsdatum';
-    case 'Nachverrechnung':
-      return 'Nachverrechnung';
-    default:
-      return 'einmalig';
-  }
-}
-
-export function makeSegment(position: IPosition, von: ISODate, bis: ISODate, art: Art, anchor?: ISODate): ISegment {
+function makeSegment(position: IPosition, von: ISODate, bis: ISODate, anchor: ISODate): ISegment {
   const { monateX100, betragCent } = computeLine(position, von, bis, anchor);
   return {
     positionId: position.id,
@@ -101,44 +92,34 @@ export function makeSegment(position: IPosition, von: ISODate, bis: ISODate, art
     menge: position.menge,
     einzelpreisCent: position.jahrespreisCent,
     betragCent,
-    art,
-    hinweis: hinweisFor(art)
+    art: artFor(position, bis, monateX100)
   };
 }
 
-export function proposeForPosition(position: IPosition, lines: IBilledLine[], rechnungsdatum: ISODate): IPositionProposal {
+export function proposeForPosition<P extends IPosition>(position: P, lines: IBilledLine[], rechnungsdatum: ISODate): IPositionProposal<P> {
   const vb = verrechnetBis(position.id, lines);
-  if (vb === null) return { position, verrechnetBis: null, nextStart: null, status: 'neu', segments: [] };
+  if (vb === null) return { position, verrechnetBis: null, nextStart: null, status: 'neu', next: null };
   const start = addDaysIso(vb, 1);
   const base = { position, verrechnetBis: vb, nextStart: start };
-  if (position.ende && start > position.ende) return { ...base, status: 'entfaellt', segments: [] };
+  if (position.ende && start > position.ende) return { ...base, status: 'entfaellt', next: null };
 
   // Raster am ersten verrechneten Tag ausrichten (verhindert Drift am Monatsende)
   const laufzeit = Math.max(1, Math.round(position.laufzeitMonate || 12));
-  let anchor = firstBilled(position.id, lines) || start;
-  let k = anchorIndex(anchor, start);
-  if (k < 0) {
-    anchor = start;
-    k = 0;
-  }
+  const { base: anchor, k } = resolveAnchor(firstBilled(position.id, lines) || undefined, start);
   let bis = addDaysIso(addMonthsIso(anchor, k + laufzeit), -1);
-  let art: Art = 'Folgezeitraum';
-  if (position.ende && position.ende < bis) {
-    bis = minIso(bis, position.ende);
-    art = 'Anteilig';
-  }
-  const status: PositionStatus = start <= horizon(rechnungsdatum) ? 'faellig' : 'nichtFaellig';
-  return { ...base, status, segments: [makeSegment(position, start, bis, art, anchor)] };
+  if (position.ende) bis = minIso(bis, position.ende);
+  return { ...base, status: statusFor(start, rechnungsdatum), next: makeSegment(position, start, bis, anchor) };
 }
 
-const ORDER: { [k in PositionStatus]: number } = { faellig: 0, neu: 1, nichtFaellig: 2, entfaellt: 3 };
-
-export function proposeInvoice(positions: IPosition[], lines: IBilledLine[], rechnungsdatum: ISODate): IInvoiceProposal {
-  const sorted = positions
+/** Vorschlag für alle Positionen, sortiert nach STATUS_ORDER (sonst in Eingabereihenfolge). */
+export function proposeInvoice<P extends IPosition>(positions: P[], lines: IBilledLine[], rechnungsdatum: ISODate): IPositionProposal<P>[] {
+  return positions
     .map((p, index) => ({ item: proposeForPosition(p, lines, rechnungsdatum), index }))
-    .sort((a, b) => ORDER[a.item.status] - ORDER[b.item.status] || a.index - b.index)
+    .sort((a, b) => STATUS_ORDER.indexOf(a.item.status) - STATUS_ORDER.indexOf(b.item.status) || a.index - b.index)
     .map((x) => x.item);
-  const segments: ISegment[] = [];
-  for (const p of sorted) if (p.status === 'faellig') segments.push(...p.segments);
-  return { rechnungsdatum, positions: sorted, segments };
+}
+
+/** Die fälligen (vorausgewählten) Zeiträume eines Vorschlags. */
+export function faelligeSegmente(proposals: IPositionProposal[]): ISegment[] {
+  return proposals.filter((p) => p.status === 'faellig' && p.next).map((p) => p.next as ISegment);
 }

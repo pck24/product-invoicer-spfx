@@ -1,6 +1,6 @@
 import { addMonthsIso, formatDate, isIsoDate, parseDate } from '../dates';
-import { divRoundHalfUp, formatEuro, formatMonate, lineAmountCent, parseEuro, parseUstSatz, totals } from '../money';
-import { suggestNumber } from '../numbering';
+import { divRoundHalfUp, formatEuro, formatMonate, lineAmountCent, formatZahl, parseEuro, parseUstSatz, totals } from '../money';
+import { nextKundennummer } from '../numbering';
 import { horizon, monthsX100 } from '../periods';
 
 describe('dates', () => {
@@ -79,8 +79,28 @@ describe('Horizont', () => {
   });
 });
 
-describe('Nummernvorschlag', () => {
-  it('K-{NNNN}', () => {
-    expect(suggestNumber('K-{NNNN}', ['K-1001', 'K-1005', 'X-9999'], 2027)).toBe('K-1006');
+describe('Kundennummer', () => {
+  it('höchste K-Nummer + 1, vierstellig', () => {
+    expect(nextKundennummer(['K-1001', 'K-1005', 'X-9999'])).toBe('K-1006');
+    expect(nextKundennummer([])).toBe('K-0001');
+    expect(nextKundennummer(['K-0009'])).toBe('K-0010');
+    expect(nextKundennummer(['K-9999'])).toBe('K-10000');
+  });
+});
+
+describe('Zahlen und Monate', () => {
+  it('formatZahl: Menge und USt-Satz einheitlich', () => {
+    expect(formatZahl(5)).toBe('5');
+    expect(formatZahl(20)).toBe('20');
+    expect(formatZahl(20.5)).toBe('20,5');
+    expect(formatZahl(2.25)).toBe('2,25');
+    expect(formatZahl(1500)).toBe('1.500');
+  });
+
+  it('Monate über viele Jahre (O(1)-Schätzung) und Monatsenden', () => {
+    expect(monthsX100('2020-01-01', '2119-12-31')).toBe(120000);
+    expect(monthsX100('2027-01-31', '2027-03-30', '2027-01-31')).toBe(200);
+    expect(monthsX100('2027-01-15', '2027-02-14')).toBe(100);
+    expect(monthsX100('2027-01-15', '2027-02-13')).toBe(97); // 30/31 Tage
   });
 });

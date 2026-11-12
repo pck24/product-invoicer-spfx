@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   Button,
-  Link,
   Menu,
   MenuItem,
   MenuList,
@@ -19,22 +18,20 @@ import {
 } from '@fluentui/react-components';
 import { MoreHorizontal20Regular } from '@fluentui/react-icons';
 import { formatDate, todayIso } from '../../billing/dates';
-import { formatEuro } from '../../billing/money';
+import { formatZahl } from '../../billing/money';
 import { IPositionItem, IRechnung, neuesteZuerst } from '../../data/mapping';
 import { useApp } from '../AppContext';
 import { errorText, useData } from '../DataContext';
-import { isGekuendigt, laufzeitText, preisText, RECHNUNG_STATUS } from '../derive';
+import { isGekuendigt, laufzeitText, preisText } from '../derive';
 import { ConfirmDialog, IConfirmRequest } from '../components/ConfirmDialog';
-import { InvoiceActions } from '../components/InvoiceActions';
 import { KuendigenDialog } from '../components/KuendigenDialog';
 import { KundeDrawer } from '../components/KundeDrawer';
 import { PositionDrawer } from '../components/PositionDrawer';
+import { RechnungenTable } from '../components/RechnungenTable';
 import { StatusBadge } from '../components/StatusBadge';
 import { useShared } from '../styles';
-import { useSummaries } from './CustomerList';
 
 const useStyles = makeStyles({
-  title: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
   badge: { marginLeft: '6px' }
 });
 
@@ -49,8 +46,8 @@ export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft, onShow }
   const s = useStyles();
   const shared = useShared();
   const { repo } = useApp();
-  const { data, reload, notify } = useData();
-  const summary = useSummaries().filter((x) => x.kunde.id === kundeId)[0];
+  const { data, summaries, reload, notify } = useData();
+  const summary = summaries.filter((x) => x.kunde.id === kundeId)[0];
   const [showEnded, setShowEnded] = React.useState(true);
   const [kundeDrawer, setKundeDrawer] = React.useState(false);
   const [positionDrawer, setPositionDrawer] = React.useState<{ open: boolean; position?: IPositionItem }>({ open: false });
@@ -61,45 +58,36 @@ export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft, onShow }
   const { kunde } = summary;
   const today = todayIso();
   const proposals = summary.proposals.filter((p) => showEnded || !isGekuendigt(p.position, today));
-  const rechnungen = data.rechnungen
-    .filter((r) => r.kundeId === kundeId)
-    .sort(neuesteZuerst);
+  const rechnungen = data.rechnungen.filter((r) => r.kundeId === kundeId).sort(neuesteZuerst);
 
-  const hasAnyLine = (positionId: number): boolean => data.rechnungspositionen.some((l) => l.positionId === positionId);
+  /** Speichert eine Aktion, lädt neu und meldet das Ergebnis. */
+  const run = async (action: () => Promise<unknown>, ok: string): Promise<void> => {
+    try {
+      await action();
+      await reload();
+      notify(ok);
+    } catch (e) {
+      notify(errorText(e), 'error');
+    }
+  };
 
   const loeschen = (p: IPositionItem): void =>
     setConfirm({
       title: 'Position löschen',
       message: `Die Position „${p.title}“ wurde nie verrechnet und wird endgültig gelöscht.`,
       confirmText: 'Löschen',
-      onConfirm: async () => {
-        try {
-          await repo.deletePosition(p.id);
-          await reload();
-          notify('Position gelöscht');
-        } catch (e) {
-          notify(errorText(e), 'error');
-        }
-      }
+      onConfirm: () => run(() => repo.deletePosition(p.id), 'Position gelöscht')
     });
 
-  const kuendigungAufheben = async (p: IPositionItem): Promise<void> => {
-    try {
-      const { id, ...rest } = p;
-      await repo.savePosition({ ...rest, ende: null }, id);
-      await reload();
-      notify(`Kündigung von ${p.title} aufgehoben`);
-    } catch (e) {
-      notify(errorText(e), 'error');
-    }
-  };
+  const kuendigungAufheben = ({ id, ...rest }: IPositionItem): Promise<void> =>
+    run(() => repo.savePosition({ ...rest, ende: null }, id), `Kündigung von ${rest.title} aufgehoben`);
 
   return (
     <>
       <header className={mergeClasses(shared.card, shared.cardPadded)}>
         <div className={shared.spaceBetween}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div className={s.title}>
+          <div className={shared.headerText}>
+            <div className={shared.titleRow}>
               <h1 className={shared.h1}>{kunde.name}</h1>
               <span className={shared.chip}>{kunde.kundennummer}</span>
               {!kunde.aktiv && <StatusBadge color="informative" text="inaktiv" />}
@@ -114,7 +102,7 @@ export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft, onShow }
             <Button onClick={() => setKundeDrawer(true)}>Bearbeiten</Button>
             <Button onClick={() => setPositionDrawer({ open: true })}>+ Position</Button>
             <Button appearance="primary" disabled={!summary.rechnungMoeglich} onClick={onFolgerechnung}>
-              {rechnungen.some((r) => r.status !== 'Storniert') ? 'Folgerechnung erstellen' : 'Erste Rechnung erstellen'}
+              {summary.letzteRechnung ? 'Folgerechnung erstellen' : 'Erste Rechnung erstellen'}
             </Button>
           </div>
         </div>
@@ -147,14 +135,13 @@ export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft, onShow }
                   </TableCell>
                 </TableRow>
               )}
-              {proposals.map((p) => {
-                const pos = summary.positionen.filter((x) => x.id === p.position.id)[0];
+              {proposals.map(({ position: pos, verrechnetBis }) => {
                 const ended = isGekuendigt(pos, today);
                 return (
                   <TableRow key={pos.id} className={ended ? shared.ended : undefined}>
                     <TableCell className={shared.strong}>
                       <span className={ended ? shared.strike : undefined}>{pos.title}</span>
-                      {p.verrechnetBis === null && !ended && (
+                      {verrechnetBis === null && !ended && (
                         <span className={s.badge}>
                           <StatusBadge color="brand" text="neu" size="small" />
                         </span>
@@ -165,11 +152,11 @@ export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft, onShow }
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className={shared.num}>{String(pos.menge).replace('.', ',')}</TableCell>
+                    <TableCell className={shared.num}>{formatZahl(pos.menge)}</TableCell>
                     <TableCell className={shared.num}>{preisText(pos)}</TableCell>
                     <TableCell>{laufzeitText(pos.laufzeitMonate)}</TableCell>
                     <TableCell className={shared.num} style={{ textAlign: 'left' }}>
-                      {p.verrechnetBis ? formatDate(p.verrechnetBis) : <span className={shared.muted}>noch nie</span>}
+                      {verrechnetBis ? formatDate(verrechnetBis) : <span className={shared.muted}>noch nie</span>}
                     </TableCell>
                     <TableCell>
                       <Menu>
@@ -181,7 +168,7 @@ export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft, onShow }
                             <MenuItem onClick={() => setPositionDrawer({ open: true, position: pos })}>Bearbeiten</MenuItem>
                             <MenuItem onClick={() => setKuendigen(pos)}>{pos.ende ? 'Kündigungsdatum ändern' : 'Kündigen'}</MenuItem>
                             {pos.ende && <MenuItem onClick={() => kuendigungAufheben(pos)}>Kündigung aufheben</MenuItem>}
-                            {!hasAnyLine(pos.id) && <MenuItem onClick={() => loeschen(pos)}>Löschen</MenuItem>}
+                            {!data.positionMitZeilen[pos.id] && <MenuItem onClick={() => loeschen(pos)}>Löschen</MenuItem>}
                           </MenuList>
                         </MenuPopover>
                       </Menu>
@@ -200,58 +187,7 @@ export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft, onShow }
             Rechnungshistorie
           </h2>
         </div>
-        <div className={shared.tableWrap}>
-          <Table className={shared.table} aria-label="Rechnungshistorie">
-            <TableHeader>
-              <TableRow>
-                <TableHeaderCell>Nr.</TableHeaderCell>
-                <TableHeaderCell>Datum</TableHeaderCell>
-                <TableHeaderCell>Positionen</TableHeaderCell>
-                <TableHeaderCell className={mergeClasses(shared.num, shared.numHead)}>Netto</TableHeaderCell>
-                <TableHeaderCell>Status</TableHeaderCell>
-                <TableHeaderCell aria-label="Dokument" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rechnungen.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className={shared.muted}>
-                    Noch keine Rechnungen.
-                  </TableCell>
-                </TableRow>
-              )}
-              {rechnungen.map((r) => {
-                const n = data.rechnungspositionen.filter((l) => l.rechnungId === r.id).length;
-                return (
-                  <TableRow key={r.id} className={shared.clickableRow} onClick={() => onShow(r)}>
-                    <TableCell className={shared.strong}>
-                      <Link
-                        as="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onShow(r);
-                        }}
-                      >
-                        {r.nummer}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{formatDate(r.rechnungsdatum)}</TableCell>
-                    <TableCell>
-                      {n} {n === 1 ? 'Zeitraum' : 'Zeiträume'}
-                    </TableCell>
-                    <TableCell className={shared.num}>{formatEuro(r.summeNettoCent)}</TableCell>
-                    <TableCell>
-                      <StatusBadge color={RECHNUNG_STATUS[r.status]} text={r.status} />
-                    </TableCell>
-                    <TableCell style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <InvoiceActions rechnung={r} onEditDraft={onEditDraft} onShow={onShow} />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+        <RechnungenTable rechnungen={rechnungen} onShow={onShow} onEditDraft={onEditDraft} emptyText="Noch keine Rechnungen." />
       </section>
 
       <KundeDrawer open={kundeDrawer} kunde={kunde} onClose={() => setKundeDrawer(false)} />

@@ -3,7 +3,6 @@ import '@pnp/sp/webs';
 import '@pnp/sp/files';
 import '@pnp/sp/folders';
 import type { MSGraphClientV3 } from '@microsoft/sp-http';
-import { fillTemplate } from './fillTemplate';
 import { buildTemplateData, ExportVariante, fileName, IExportInput } from './templateData';
 
 export interface IExportEnv {
@@ -39,6 +38,58 @@ export class ExportNotConfiguredError extends Error {
     Object.setPrototypeOf(this, ExportNotConfiguredError.prototype);
   }
 }
+
+/** Microsoft Graph verweigert den Zugriff (meist fehlt die API-Freigabe "Sites.ReadWrite.All"). */
+export class GraphAccessError extends Error {
+  public constructor(cause: unknown) {
+    super(`Kein Zugriff auf Microsoft Graph: ${cause instanceof Error ? cause.message : String(cause)}`);
+    this.name = 'GraphAccessError';
+    Object.setPrototypeOf(this, GraphAccessError.prototype);
+  }
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function isAccessDenied(e: any): boolean {
+  const status = e && (e.statusCode || e.status);
+  return status === 401 || status === 403;
+}
+
+/** Site-Id je Site (ändert sich nie) – spart eine Graph-Abfrage je Export. */
+const siteIds: { [key: string]: Promise<string> } = {};
+
+function siteId(graph: MSGraphClientV3, env: IExportEnv): Promise<string> {
+  const key = `${env.siteHost}:${env.siteServerRelativeUrl}`;
+  if (!siteIds[key]) {
+    siteIds[key] = graph
+      .api(`/sites/${env.siteHost}:${env.siteServerRelativeUrl || '/'}`)
+      .select('id')
+      .get()
+      .then((s: any) => s.id as string)
+      .catch((e: unknown) => {
+        delete siteIds[key];
+        throw e;
+      });
+  }
+  return siteIds[key];
+}
+
+/** Wandelt eine hochgeladene .docx über Microsoft Graph in ein PDF um. */
+async function convertToPdf(env: IExportEnv, docxServerRelativeUrl: string): Promise<Blob> {
+  const itemQuery = env.sp.web.getFileByServerRelativePath(docxServerRelativeUrl).listItemAllFields.select('Id', 'ParentList/Id').expand('ParentList');
+  try {
+    // Listenelement (SharePoint) und Site (Graph) unabhängig voneinander ermitteln
+    const [item, graph] = await Promise.all([itemQuery() as Promise<any>, env.getGraph()]);
+    const id = await siteId(graph, env);
+    const driveItem: any = await graph.api(`/sites/${id}/lists/${item.ParentList.Id}/items/${item.Id}/driveItem`).select('id,parentReference').get();
+    return await graph
+      .api(`/drives/${driveItem.parentReference.driveId}/items/${driveItem.id}/content?format=pdf`)
+      .responseType('blob' as any)
+      .get();
+  } catch (e) {
+    throw isAccessDenied(e) ? new GraphAccessError(e) : e;
+  }
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export function isConfigured(config: IExportConfig): boolean {
   return !!(config.vorlageUrl && config.vorlageUrl.trim() && config.exportOrdner && config.exportOrdner.trim());
@@ -83,7 +134,11 @@ export async function exportPdf(
   }
 
   progress('Vorlage wird geladen …');
-  const template = await sp.web.getFileByServerRelativePath(trimSlash(config.vorlageUrl as string)).getBuffer();
+  // Word-Bibliotheken (docxtemplater, pizzip) erst beim Export nachladen, nicht beim Seitenaufbau
+  const [template, { fillTemplate }] = await Promise.all([
+    sp.web.getFileByServerRelativePath(trimSlash(config.vorlageUrl as string)).getBuffer(),
+    import(/* webpackChunkName: 'abo-abrechnung-docx' */ './fillTemplate')
+  ]);
 
   progress('Vorlage wird befüllt …');
   const filled = fillTemplate(template, buildTemplateData(input, variante));
@@ -101,17 +156,7 @@ export async function exportPdf(
   const tmpUrl = tmp.ServerRelativeUrl;
   try {
     progress('PDF wird erzeugt …');
-    /* eslint-disable @typescript-eslint/no-explicit-any */
-    const item: any = await sp.web.getFileByServerRelativePath(tmpUrl).listItemAllFields.select('Id', 'ParentList/Id').expand('ParentList')();
-    const graph = await env.getGraph();
-    const site: any = await graph.api(`/sites/${env.siteHost}:${env.siteServerRelativeUrl || '/'}`).select('id').get();
-    const driveItem: any = await graph.api(`/sites/${site.id}/lists/${item.ParentList.Id}/items/${item.Id}/driveItem`).select('id,parentReference').get();
-    const pdf: Blob = await graph
-      .api(`/drives/${driveItem.parentReference.driveId}/items/${driveItem.id}/content?format=pdf`)
-      .responseType('blob' as any)
-      .get();
-    /* eslint-enable @typescript-eslint/no-explicit-any */
-
+    const pdf = await convertToPdf(env, tmpUrl);
     progress('PDF wird abgelegt …');
     const saved = await folder.files.addUsingPath(pdfName, pdf, { Overwrite: options.overwrite });
     return { url: absolute(saved.ServerRelativeUrl), name: pdfName, warnings: filled.warnings, existed: false };

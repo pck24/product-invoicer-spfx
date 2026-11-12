@@ -8,11 +8,15 @@ export interface IDraftLine {
   title: string;
   von: ISODate | null;
   bis: ISODate | null;
+  /** nur einmalige Zeilen: Betrag in Cent; null = fehlt (undefined = nicht prüfen) */
+  betragCent?: number | null;
 }
 
 export interface IValidationIssue {
   severity: 'error' | 'warning';
   lineKey?: string;
+  /** betroffenes Kopffeld */
+  field?: 'nummer';
   message: string;
 }
 
@@ -34,9 +38,9 @@ export function validateInvoice(input: IValidationInput): IValidationIssue[] {
   const issues: IValidationIssue[] = [];
   const nr = normalizeNumber(input.invoiceNumber);
   if (!nr) {
-    issues.push({ severity: 'error', message: 'Rechnungsnummer fehlt.' });
+    issues.push({ severity: 'error', field: 'nummer', message: 'Rechnungsnummer fehlt.' });
   } else if (input.existingInvoiceNumbers.some((x) => normalizeNumber(x) === nr)) {
-    issues.push({ severity: 'error', message: `Die Rechnungsnummer ${input.invoiceNumber.trim()} existiert bereits.` });
+    issues.push({ severity: 'error', field: 'nummer', message: `Die Rechnungsnummer ${input.invoiceNumber.trim()} existiert bereits.` });
   }
 
   const byPosition: { [id: number]: IDraftLine[] } = {};
@@ -50,7 +54,12 @@ export function validateInvoice(input: IValidationInput): IValidationIssue[] {
       issues.push({ severity: 'error', lineKey: line.key, message: `${name}: „Bis“ liegt vor „Von“.` });
       continue;
     }
-    if (line.positionId === null) continue;
+    if (line.positionId === null) {
+      if (!line.title.trim() || line.betragCent === null) {
+        issues.push({ severity: 'error', lineKey: line.key, message: `${line.title.trim() || 'Einmalige Position'}: Bezeichnung und Betrag angeben.` });
+      }
+      continue;
+    }
     if (!line.von || !line.bis) {
       issues.push({ severity: 'error', lineKey: line.key, message: `${name}: Zeitraum fehlt.` });
       continue;

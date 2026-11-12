@@ -15,10 +15,11 @@ import {
   makeStyles,
   mergeClasses
 } from '@fluentui/react-components';
-import { formatDate, todayIso } from '../../billing/dates';
+import { formatDate } from '../../billing/dates';
 import { formatEuro } from '../../billing/money';
 import { useData } from '../DataContext';
-import { ICustomerSummary, kpis, summarizeCustomer } from '../derive';
+import { kpis } from '../derive';
+import { rowClick } from '../rowClick';
 import { KpiCard } from '../components/KpiCard';
 import { KundeDrawer } from '../components/KundeDrawer';
 import { StatusBadge } from '../components/StatusBadge';
@@ -40,29 +41,10 @@ export interface ICustomerListProps {
   rechnungen: React.ReactNode;
 }
 
-export function useSummaries(): ICustomerSummary[] {
-  const { data } = useData();
-  return React.useMemo(() => {
-    if (!data) return [];
-    const today = todayIso();
-    return data.kunden.map((k) => {
-      const pos = data.positionen.filter((p) => p.kundeId === k.id);
-      const ids = pos.map((p) => p.id);
-      return summarizeCustomer(
-        k,
-        pos,
-        data.rechnungen.filter((r) => r.kundeId === k.id),
-        data.billedLines.filter((l) => l.positionId !== null && ids.indexOf(l.positionId) >= 0),
-        today
-      );
-    });
-  }, [data]);
-}
-
 export function CustomerList({ tab, onTab, onOpen, rechnungen }: ICustomerListProps): React.ReactElement {
   const s = useStyles();
   const shared = useShared();
-  const summaries = useSummaries();
+  const { summaries } = useData();
   const [search, setSearch] = React.useState('');
   const [filter, setFilter] = React.useState<Filter>('alle');
   const [drawer, setDrawer] = React.useState(false);
@@ -157,7 +139,7 @@ export function CustomerList({ tab, onTab, onOpen, rechnungen }: ICustomerListPr
                     </TableRow>
                   )}
                   {rows.map((x) => (
-                    <TableRow key={x.kunde.id} className={shared.clickableRow} onClick={() => onOpen(x.kunde.id)}>
+                    <TableRow key={x.kunde.id} className={shared.clickableRow} onClick={rowClick(() => onOpen(x.kunde.id))}>
                       <TableCell className={shared.num} style={{ textAlign: 'left' }}>
                         {x.kunde.kundennummer}
                       </TableCell>
@@ -173,14 +155,7 @@ export function CustomerList({ tab, onTab, onOpen, rechnungen }: ICustomerListPr
                         <StatusBadge color={x.status.color} text={x.status.text} />
                       </TableCell>
                       <TableCell style={{ textAlign: 'right' }}>
-                        <Link
-                          as="button"
-                          className={shared.strong}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOpen(x.kunde.id);
-                          }}
-                        >
+                        <Link as="button" className={shared.strong} onClick={() => onOpen(x.kunde.id)}>
                           Öffnen
                         </Link>
                       </TableCell>

@@ -120,20 +120,24 @@ export class Repository {
     return (await readAll(this.list(LIST.Rechnungspositionen), RECHNUNGSPOSITION_FIELDS, f)).map(rechnungspositionFromItem);
   }
 
-  /** Legt Rechnungspositionen an; schlägt eine fehl, werden die bereits angelegten wieder entfernt. */
+  /** Legt Rechnungspositionen parallel an; schlägt eine fehl, werden die angelegten wieder entfernt. */
   private async addLines(rechnungId: number, lines: Omit<IRechnungsposition, 'id' | 'rechnungId'>[]): Promise<number[]> {
     const list = this.list(LIST.Rechnungspositionen);
-    const ids: number[] = [];
-    try {
-      for (const line of lines) {
-        const added: SPItem = await list.items.add(rechnungspositionToItem({ ...line, rechnungId }));
-        ids.push(added.Id);
-      }
-      return ids;
-    } catch (e) {
+    const results = await Promise.all(
+      lines.map((line) =>
+        list.items.add(rechnungspositionToItem({ ...line, rechnungId })).then(
+          (added: SPItem) => ({ id: added.Id as number, error: undefined as unknown }),
+          (error: unknown) => ({ id: 0, error })
+        )
+      )
+    );
+    const failed = results.filter((r) => r.error !== undefined)[0];
+    const ids = results.filter((r) => r.error === undefined).map((r) => r.id);
+    if (failed) {
       await deleteItems(list, ids, true);
-      throw e;
+      throw failed.error;
     }
+    return ids;
   }
 
   /**
@@ -177,13 +181,10 @@ export class Repository {
     return { ...rechnung, id, pdfUrl: null };
   }
 
-  public async setStatus(id: number, status: RechnungsStatus): Promise<void> {
-    await this.list(LIST.Rechnungen).items.getById(id).update({ Status: status });
-  }
-
   /** Storniert eine erstellte Rechnung; ihre Zeiträume sind danach wieder frei. */
   public async stornieren(id: number): Promise<void> {
-    await this.setStatus(id, 'Storniert');
+    const status: RechnungsStatus = 'Storniert';
+    await this.list(LIST.Rechnungen).items.getById(id).update({ Status: status });
   }
 
   /** Löscht einen Entwurf samt Positionen. Andere Status werden abgelehnt. */

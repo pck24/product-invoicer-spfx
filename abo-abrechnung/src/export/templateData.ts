@@ -1,7 +1,8 @@
 /** Daten für die Word-Vorlage (rein, ohne SharePoint). Alle Werte fertig formatiert. */
 import { addDaysIso, addMonthsIso, formatDate } from '../billing/dates';
-import { formatAmount, formatEuro, formatMonate, totals } from '../billing/money';
+import { formatEuro, formatMonate, formatZahl, totals } from '../billing/money';
 import { IBilledLine, ISODate } from '../billing/types';
+import { escapeXml } from '../data/lists';
 import { IKunde, IPositionItem, IRechnung, IRechnungsposition } from '../data/mapping';
 import { timelineRange, timelineRows } from './timelineModel';
 
@@ -69,13 +70,13 @@ export function buildTemplateData(input: IExportInput, variante: ExportVariante)
       von: formatDate(l.von),
       bis: formatDate(l.bis),
       monate: l.positionId !== null ? formatMonate(l.monateX100) : '',
-      menge: String(l.menge).replace('.', ','),
+      menge: formatZahl(l.menge),
       einzelpreis: l.positionId !== null ? formatEuro(l.einzelpreisCent) : '',
       betrag: formatEuro(l.betragCent),
       art: l.art
     })),
     summeNetto: formatEuro(t.nettoCent),
-    ustSatz: formatAmount(Math.round(input.ustSatz * 100)).replace(/,00$/, ''),
+    ustSatz: formatZahl(input.ustSatz),
     ust: formatEuro(t.ustCent),
     summeBrutto: formatEuro(t.bruttoCent),
     zeitleiste: timelineXml(input)
@@ -107,9 +108,7 @@ const COLOR_OTHER = 'C9DCF2';
 const COLOR_GRID = 'D9D9D9';
 const COLOR_MARKER = 'C4262E';
 
-function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+const esc = escapeXml;
 
 interface ICell {
   start: ISODate;

@@ -20,17 +20,19 @@ import {
 } from '@fluentui/react-components';
 import { Delete20Regular } from '@fluentui/react-icons';
 import { formatDate, isIsoDate, todayIso } from '../../billing/dates';
-import { formatAmount, formatEuro, formatMonate, parseEuro } from '../../billing/money';
+import { formatAmount, formatEuro, formatMonate, formatZahl, parseEuro } from '../../billing/money';
 import { IBilledLine } from '../../billing/types';
-import { hasErrors, IValidationIssue, normalizeNumber, validateInvoice } from '../../billing/validation';
+import { hasErrors, IValidationIssue, validateInvoice } from '../../billing/validation';
 import { IRechnung, neuesteZuerst, toBilledLines } from '../../data/mapping';
 import { useApp } from '../AppContext';
 import { errorText, useData } from '../DataContext';
 import { DateField } from '../components/DateField';
+import { TotalsBlock } from '../components/TotalsBlock';
 import {
   applyDraft,
   buildRows,
-  calcRow,
+  calcRows,
+  draftContext,
   draftTotals,
   IDraftRow,
   refreshDefaults,
@@ -46,15 +48,6 @@ const useStyles = makeStyles({
   dateCell: { width: '140px', paddingLeft: '4px', paddingRight: '4px' },
   amount: { width: '110px', '& input': { textAlign: 'right' } },
   disabledRow: { color: tokens.colorNeutralForeground4 },
-  totals: {
-    padding: '16px 20px',
-    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
-    display: 'flex',
-    justifyContent: 'flex-end'
-  },
-  dl: { margin: 0, display: 'grid', gridTemplateColumns: 'auto auto', columnGap: '32px', rowGap: '6px', fontVariantNumeric: 'tabular-nums', minWidth: '260px' },
-  dd: { margin: 0, textAlign: 'right' },
-  total: { fontWeight: tokens.fontWeightBold, paddingTop: '6px', borderTop: `1px solid ${tokens.colorNeutralStroke2}` },
   footer: { display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px' },
   issues: { margin: '4px 0 0', paddingLeft: '18px' },
   rowIssue: { color: tokens.colorPaletteRedForeground1, display: 'block' },
@@ -101,8 +94,8 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
   const { data, reload, notify } = useData();
   const exp = useExport();
 
-  const kunde = data ? data.kunden.filter((k) => k.id === kundeId)[0] : undefined;
-  const entwurf = data && rechnungId ? data.rechnungen.filter((r) => r.id === rechnungId)[0] : undefined;
+  const kunde = data ? data.kundeById[kundeId] : undefined;
+  const entwurf = data && rechnungId ? data.rechnungById[rechnungId] : undefined;
   const positionen = React.useMemo(() => (data ? data.positionen.filter((p) => p.kundeId === kundeId) : []), [data, kundeId]);
   /** bestehende Zeiträume ohne den gerade bearbeiteten Entwurf */
   const billed: IBilledLine[] = React.useMemo(() => {
@@ -118,17 +111,19 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
 
   const [nummer, setNummer] = React.useState(entwurf ? entwurf.nummer : '');
   const [datum, setDatum] = React.useState(entwurf && entwurf.rechnungsdatum ? entwurf.rechnungsdatum : todayIso());
+  const ctx = React.useMemo(() => draftContext(positionen, billed), [positionen, billed]);
   const [rows, setRows] = React.useState<IDraftRow[]>(() => {
     const base = buildRows(positionen, billed, datum);
-    return entwurf && data ? applyDraft(base, data.rechnungspositionen.filter((l) => l.rechnungId === entwurf.id), positionen, billed) : base;
+    return entwurf && data ? applyDraft(base, data.zeilenJeRechnung[entwurf.id] || [], ctx) : base;
   });
   const [busy, setBusy] = React.useState<string | undefined>();
   const [saveIssues, setSaveIssues] = React.useState<IValidationIssue[] | undefined>();
   const [saveError, setSaveError] = React.useState<string | undefined>();
   const nextKey = React.useRef(0);
 
-  // Live-Prüfung
-  const otherNumbers = data ? data.rechnungen.filter((r) => r.id !== rechnungId).map((r) => r.nummer) : [];
+  // Berechnung aller Zeilen und Live-Prüfung nur bei Änderung von Zeilen/Daten
+  const calcs = React.useMemo(() => calcRows(rows, ctx), [rows, ctx]);
+  const otherNumbers = React.useMemo(() => (data ? data.rechnungen.filter((r) => r.id !== rechnungId).map((r) => r.nummer) : []), [data, rechnungId]);
   const issues: IValidationIssue[] = React.useMemo(() => {
     const list = validateInvoice({
       invoiceNumber: nummer,
@@ -139,18 +134,13 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
     });
     if (!isIsoDate(datum)) list.push({ severity: 'error', message: 'Rechnungsdatum fehlt.' });
     if (selectedRows(rows).length === 0) list.push({ severity: 'error', message: 'Keine Position ausgewählt.' });
-    for (const r of selectedRows(rows)) {
-      if (r.positionId === null && !calcRow(r, positionen, billed).complete) {
-        list.push({ severity: 'error', lineKey: r.key, message: `${r.title || 'Einmalige Position'}: Bezeichnung und Betrag angeben.` });
-      }
-    }
     return list;
-  }, [nummer, datum, rows, positionen, billed, otherNumbers.join('|')]);
+  }, [nummer, datum, rows, positionen, billed, otherNumbers]);
   const shown = saveIssues || issues;
   const errors = shown.filter((i) => i.severity === 'error');
   const warnings = shown.filter((i) => i.severity === 'warning');
-  const nummerDoppelt = !!nummer.trim() && otherNumbers.some((n) => normalizeNumber(n) === normalizeNumber(nummer));
-  const t = draftTotals(rows, positionen, billed, settings.ustSatz);
+  const nummerFehler = nummer.trim() ? issues.filter((i) => i.field === 'nummer')[0] : undefined;
+  const t = draftTotals(rows, calcs, settings.ustSatz);
 
   if (!data || !kunde) return <p>Kunde nicht gefunden.</p>;
   if (rechnungId && (!entwurf || entwurf.status !== 'Entwurf')) {
@@ -167,6 +157,8 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
       rs.map((r) => {
         if (r.key !== key) return r;
         const next = { ...r, ...patch };
+        // Neuer Zeitraum einer Position → Betrag wieder berechnen
+        if (r.positionId !== null && ('von' in patch || 'bis' in patch)) next.betragOverrideCent = null;
         // Neue Position: sobald Von und Bis gesetzt sind, automatisch anhaken
         if (next.kind === 'neu' && !next.touched && isIsoDate(next.von) && isIsoDate(next.bis)) next.checked = true;
         return next;
@@ -205,16 +197,17 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
         setSaveIssues(freshIssues);
         return;
       }
+      const freshCtx = draftContext(positionen, fresh);
       const header = {
         nummer: nummer.trim(),
         kundeId,
         rechnungsdatum: datum,
         vorgaengerId: vorgaenger ? vorgaenger.id : null,
         status,
-        summeNettoCent: draftTotals(rows, positionen, fresh, settings.ustSatz).nettoCent,
+        summeNettoCent: draftTotals(rows, calcRows(rows, freshCtx), settings.ustSatz).nettoCent,
         ustSatz: settings.ustSatz
       };
-      const lines = toSaveLines(rows, positionen, fresh);
+      const lines = toSaveLines(rows, freshCtx);
       const saved = rechnungId ? await repo.updateEntwurf(rechnungId, header, lines) : await repo.createRechnung(header, lines);
       const reloaded = await reload();
       notify(status === 'Entwurf' ? `Entwurf ${header.nummer} gespeichert` : `Rechnung ${header.nummer} erstellt`);
@@ -246,7 +239,7 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
             label="Rechnungsnummer"
             required
             hint="aus deinem Rechnungssystem"
-            validationMessage={nummerDoppelt ? 'Diese Rechnungsnummer existiert bereits.' : undefined}
+            validationMessage={nummerFehler ? nummerFehler.message : undefined}
           >
             <Input value={nummer} onChange={(_, d) => setNummer(d.value)} />
           </Field>
@@ -323,7 +316,7 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
                 </TableRow>
               )}
               {rows.map((r) => {
-                const c = calcRow(r, positionen, billed);
+                const c = calcs[r.key];
                 const disabled = r.kind === 'entfaellt';
                 const rowIssues = issuesFor(r.key);
                 return (
@@ -342,15 +335,15 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
                       ) : (
                         <span className={disabled ? shared.strike : undefined}>
                           {r.title}
-                          {c.menge !== 1 && ` × ${String(c.menge).replace('.', ',')}`}
+                          {c.menge !== 1 && ` × ${formatZahl(c.menge)}`}
                         </span>
                       )}
                     </TableCell>
                     <TableCell className={s.dateCell}>
-                      {disabled ? '–' : <DateField bare label={`${r.title} von`} value={r.von} onChange={(v) => update(r.key, { von: v, betragOverrideCent: r.positionId === null ? r.betragOverrideCent : null })} />}
+                      {disabled ? '–' : <DateField bare label={`${r.title} von`} value={r.von} onChange={(v) => update(r.key, { von: v })} />}
                     </TableCell>
                     <TableCell className={s.dateCell}>
-                      {disabled ? '–' : <DateField bare label={`${r.title} bis`} value={r.bis} onChange={(v) => update(r.key, { bis: v, betragOverrideCent: r.positionId === null ? r.betragOverrideCent : null })} />}
+                      {disabled ? '–' : <DateField bare label={`${r.title} bis`} value={r.bis} onChange={(v) => update(r.key, { bis: v })} />}
                     </TableCell>
                     <TableCell className={shared.num}>{c.complete && r.positionId !== null ? formatMonate(c.monateX100) : '–'}</TableCell>
                     <TableCell className={shared.num}>{r.positionId !== null ? formatEuro(c.einzelpreisCent) : '–'}</TableCell>
@@ -362,7 +355,7 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
                       )}
                     </TableCell>
                     <TableCell>
-                      {c.hinweis === 'erste Verrechnung – Zeitraum frei wählen' ? <span className={s.badge}>{c.hinweis}</span> : <span className={shared.muted}>{c.hinweis}</span>}
+                      <span className={c.hinweisTon === 'hervorgehoben' ? s.badge : shared.muted}>{c.hinweis}</span>
                       {r.betragOverrideCent !== null && r.positionId !== null && <span className={shared.muted}> · Betrag manuell</span>}
                       {rowIssues.map((i, n) => (
                         <span key={n} className={i.severity === 'error' ? s.rowIssue : s.rowWarn}>
@@ -385,16 +378,7 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
             </TableBody>
           </Table>
         </div>
-        <div className={s.totals}>
-          <dl className={s.dl}>
-            <dt className={shared.muted}>Summe netto</dt>
-            <dd className={s.dd}>{formatEuro(t.nettoCent)}</dd>
-            <dt className={shared.muted}>USt. {String(settings.ustSatz).replace('.', ',')} %</dt>
-            <dd className={s.dd}>{formatEuro(t.ustCent)}</dd>
-            <dt className={s.total}>Gesamt brutto</dt>
-            <dd className={mergeClasses(s.dd, s.total)}>{formatEuro(t.bruttoCent)}</dd>
-          </dl>
-        </div>
+        <TotalsBlock totals={t} ustSatz={settings.ustSatz} />
       </section>
 
       <footer className={s.footer}>
