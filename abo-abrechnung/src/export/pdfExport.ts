@@ -186,7 +186,7 @@ export async function exportPdf(
   // Zeitleiste als Bild (wie in der App); scheitert das Zeichnen, bleibt die Tabelle
   let bild: ITimelineImage | null = null;
   try {
-    bild = await renderTimelinePng(input);
+    bild = renderTimelinePng(input);
   } catch (e) {
     console.warn('[Abo-Abrechnung] Zeitleiste als Bild nicht möglich, verwende Tabelle', e);
   }
