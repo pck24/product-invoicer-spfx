@@ -80,9 +80,9 @@ export function validateInvoice(input: IValidationInput): IValidationIssue[] {
       }
       if (prev && von <= (prev.bis as ISODate)) {
         issues.push({ severity: 'error', lineKey: line.key, message: `${name}: Zeiträume in dieser Rechnung überschneiden sich.` });
-      } else if (expected !== null && von < expected && overlap.length === 0) {
-        issues.push({ severity: 'error', lineKey: line.key, message: `${name}: „Von“ liegt vor dem nächsten offenen Tag ${formatDate(expected)}.` });
       } else if (expected !== null && von > expected) {
+        // Zeiträume vor "expected" ohne Überschneidung sind erlaubt: sie füllen eine Lücke,
+        // z. B. nach dem Storno einer älteren Rechnung. Doppelverrechnung verhindert die Überschneidungsprüfung.
         issues.push({ severity: 'warning', lineKey: line.key, message: `${name}: Lücke von ${formatDate(expected)} bis ${formatDate(addDaysIso(von, -1))}.` });
       }
       if (position.ende && bis > position.ende) {

@@ -58,6 +58,16 @@ export function parseEuro(value: string): number | null {
   return m[1] === '-' ? -cent : cent;
 }
 
+/** USt-Satz aus Eingabe ("20", "20,5", 0); ungültig oder leer → fallback. 0 % ist gültig. */
+export function parseUstSatz(value: unknown, fallback = 20): number {
+  if (typeof value === 'number') return isFinite(value) && value >= 0 ? value : fallback;
+  const s = String(value === undefined || value === null ? '' : value)
+    .trim()
+    .replace(',', '.');
+  const n = s === '' ? NaN : Number(s);
+  return isFinite(n) && n >= 0 ? n : fallback;
+}
+
 /** 1200 → "12", 455 → "4,55" */
 export function formatMonate(monateX100: number): string {
   if (monateX100 % 100 === 0) return String(monateX100 / 100);

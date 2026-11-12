@@ -56,6 +56,10 @@ describe('Platzhalterdaten', () => {
     });
   });
 
+  it('Dateiname: "$"-Muster in Kundendaten werden nicht als Ersetzungsmuster interpretiert', () => {
+    expect(fileName('', { rechnungsnummer: '1', kundennummer: 'K', kundenname: "Cash$'n Carry $&" })).toBe("1_K_Cash$'n Carry $-");
+  });
+
   it('Dateiname ohne ungültige Zeichen', () => {
     expect(fileName('{rechnungsnummer}_{kundennummer}_{kundenname}', { rechnungsnummer: 'RE/2027:1', kundennummer: 'K-1', kundenname: 'Huber & Söhne' })).toBe('RE-2027-1_K-1_Huber - Söhne');
     expect(fileName('', { rechnungsnummer: '1', kundennummer: 'K', kundenname: 'X' }, '_Leistungsuebersicht')).toBe('1_K_X_Leistungsuebersicht');

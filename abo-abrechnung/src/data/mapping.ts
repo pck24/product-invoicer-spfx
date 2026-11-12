@@ -21,6 +21,8 @@ export interface IRechnung {
   vorgaengerId: number | null;
   status: RechnungsStatus;
   summeNettoCent: number;
+  /** USt-Satz bei Erstellung; null bei älteren Rechnungen (dann gilt der aktuelle Satz) */
+  ustSatz?: number | null;
   pdfUrl: string | null;
 }
 
@@ -64,7 +66,7 @@ export function toCent(euro: number | null | undefined): number {
 
 export const KUNDE_FIELDS = ['Id', 'Title', 'Kundennummer', 'Adresse', 'Aktiv'];
 export const POSITION_FIELDS = ['Id', 'Title', 'KundeId', 'Menge', 'Preis', 'LaufzeitMonate', 'Ende'];
-export const RECHNUNG_FIELDS = ['Id', 'Title', 'KundeId', 'Rechnungsdatum', 'VorgaengerId', 'Status', 'SummeNettoCent', 'PdfLink'];
+export const RECHNUNG_FIELDS = ['Id', 'Title', 'KundeId', 'Rechnungsdatum', 'VorgaengerId', 'Status', 'SummeNettoCent', 'UstSatz', 'PdfLink'];
 export const RECHNUNGSPOSITION_FIELDS = ['Id', 'Title', 'RechnungId', 'PositionId', 'Von', 'Bis', 'Monate', 'Menge', 'EinzelpreisCent', 'BetragCent', 'Art'];
 
 export function kundeFromItem(i: SPItem): IKunde {
@@ -117,8 +119,19 @@ export function rechnungFromItem(i: SPItem): IRechnung {
     vorgaengerId: i.VorgaengerId || null,
     status: status(i.Status),
     summeNettoCent: i.SummeNettoCent || 0,
+    ustSatz: typeof i.UstSatz === 'number' ? i.UstSatz : null,
     pdfUrl: (i.PdfLink && i.PdfLink.Url) || null
   };
+}
+
+/** Sortierung: neueste Rechnung zuerst (Rechnungsdatum, dann Id). */
+export function neuesteZuerst(a: IRechnung, b: IRechnung): number {
+  return (b.rechnungsdatum || '').localeCompare(a.rechnungsdatum || '') || b.id - a.id;
+}
+
+/** USt-Satz einer Rechnung: gespeicherter Satz, sonst der aktuelle aus den Einstellungen. */
+export function ustSatzOf(r: IRechnung, aktuell: number): number {
+  return typeof r.ustSatz === 'number' ? r.ustSatz : aktuell;
 }
 
 export function rechnungToItem(r: Omit<IRechnung, 'id' | 'pdfUrl'>): SPItem {
@@ -128,7 +141,8 @@ export function rechnungToItem(r: Omit<IRechnung, 'id' | 'pdfUrl'>): SPItem {
     Rechnungsdatum: toSpDate(r.rechnungsdatum),
     VorgaengerId: r.vorgaengerId,
     Status: r.status,
-    SummeNettoCent: r.summeNettoCent
+    SummeNettoCent: r.summeNettoCent,
+    UstSatz: typeof r.ustSatz === 'number' ? r.ustSatz : null
   };
 }
 

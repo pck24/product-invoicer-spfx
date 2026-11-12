@@ -74,6 +74,8 @@ export const LISTS: IListDef[] = [
       { name: 'Vorgaenger', displayName: 'Vorgänger', type: 'Lookup', lookupList: LIST.Rechnungen },
       { name: 'Status', displayName: 'Status', type: 'Choice', choices: ['Entwurf', 'Erstellt', 'Storniert'], defaultValue: 'Entwurf' },
       { name: 'SummeNettoCent', displayName: 'Summe netto (Cent)', type: 'Number', decimals: 0 },
+      // USt-Satz zum Zeitpunkt der Erstellung, damit spätere Änderungen alte Rechnungen nicht verändern
+      { name: 'UstSatz', displayName: 'USt-Satz (%)', type: 'Number', decimals: 2 },
       { name: 'PdfLink', displayName: 'PDF', type: 'URL' }
     ]
   },

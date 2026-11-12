@@ -2,6 +2,7 @@ import * as React from 'react';
 import { ExportNotConfiguredError, exportPdf } from '../export/pdfExport';
 import { ExportVariante, IExportInput } from '../export/templateData';
 import { useApp } from './AppContext';
+import { ustSatzOf } from '../data/mapping';
 import { errorText, IAppData, useData } from './DataContext';
 
 /** Eingabedaten für den Export aus den geladenen Listen. */
@@ -15,7 +16,7 @@ export function buildExportInput(data: IAppData, rechnungId: number, ustSatz: nu
     lines: data.rechnungspositionen.filter((l) => l.rechnungId === rechnung.id),
     positionen: data.positionen.filter((p) => p.kundeId === rechnung.kundeId),
     billedLines: data.billedLines,
-    ustSatz
+    ustSatz: ustSatzOf(rechnung, ustSatz)
   };
 }
 
@@ -47,12 +48,20 @@ export function useExport(): IExportRun {
       setBusy('PDF wird erzeugt …');
       try {
         const res = await exportPdf(exportEnv, settings, input, variante, { overwrite, onProgress: setBusy });
+        if (res.existed) {
+          // Eine gleichnamige Datei stammt evtl. von einer anderen (gelöschten) Rechnung → nicht verknüpfen
+          notify(
+            `Datei „${res.name}“ existiert bereits und wurde weder überschrieben noch verknüpft. Neu erzeugen über „Mit Kosten exportieren“.`,
+            'warning'
+          );
+          return false;
+        }
         // Die Variante mit Kosten ist die Dokumentation der Rechnung → Link speichern
         if (variante === 'mitKosten' && input.rechnung.pdfUrl !== res.url) {
           await repo.setPdfLink(input.rechnung.id, res.url, res.name);
           await reload();
         }
-        notify(res.existed ? 'Datei war bereits abgelegt' : 'Datei abgelegt', 'success', { text: res.name, url: res.url });
+        notify('Datei abgelegt', 'success', { text: res.name, url: res.url });
         if (res.warnings.length) notify(`Unbekannte Platzhalter in der Vorlage (leer ersetzt): ${res.warnings.join(', ')}`, 'warning');
         return true;
       } catch (e) {

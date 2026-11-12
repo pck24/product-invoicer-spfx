@@ -1,5 +1,5 @@
 import { addMonthsIso, formatDate, isIsoDate, parseDate } from '../dates';
-import { divRoundHalfUp, formatEuro, formatMonate, lineAmountCent, parseEuro, totals } from '../money';
+import { divRoundHalfUp, formatEuro, formatMonate, lineAmountCent, parseEuro, parseUstSatz, totals } from '../money';
 import { suggestNumber } from '../numbering';
 import { horizon, monthsX100 } from '../periods';
 
@@ -40,6 +40,16 @@ describe('Geld', () => {
     expect(lineAmountCent(1800, 1, 2400)).toBe(3600);
     expect(lineAmountCent(11880, 1, 455)).toBe(4505); // 45,045 → 45,05
     expect(lineAmountCent(1000, 1, 100)).toBe(83); // 83,33 → 83
+  });
+
+  it('USt-Satz aus der Eingabe: 0 % bleibt 0 %', () => {
+    expect(parseUstSatz('0')).toBe(0);
+    expect(parseUstSatz(0)).toBe(0);
+    expect(parseUstSatz('20,5')).toBe(20.5);
+    expect(parseUstSatz('')).toBe(20);
+    expect(parseUstSatz(undefined)).toBe(20);
+    expect(parseUstSatz('abc', -1)).toBe(-1);
+    expect(parseUstSatz('-5', -1)).toBe(-1);
   });
 
   it('USt auf die Nettosumme', () => {

@@ -3,7 +3,7 @@ import { formatDate } from '../billing/dates';
 import { formatEuro, formatMonate } from '../billing/money';
 import { IPositionProposal, ISegment, nextStart, proposeForPosition, proposeInvoice } from '../billing/proposal';
 import { IBilledLine, IPosition, ISODate } from '../billing/types';
-import { IKunde, IPositionItem, IRechnung } from '../data/mapping';
+import { IKunde, IPositionItem, IRechnung, neuesteZuerst } from '../data/mapping';
 
 export type BadgeColor = 'warning' | 'danger' | 'success' | 'informative' | 'brand';
 
@@ -49,7 +49,7 @@ export function summarizeCustomer(
   const gekuendigt = positionen.filter((p) => isGekuendigt(p, today)).length;
   const letzte = rechnungen
     .filter((r) => r.status !== 'Storniert')
-    .sort((a, b) => (b.rechnungsdatum || '').localeCompare(a.rechnungsdatum || '') || b.id - a.id)[0];
+    .sort(neuesteZuerst)[0];
   const laufend = proposal.positions.filter((p) => p.status === 'faellig' && !!p.nextStart && p.nextStart <= today);
   const neu = proposal.positions.filter((p) => p.status === 'neu' && !isGekuendigt(p.position, today));
   const laufendePositionen = proposal.positions.filter((p) => p.status === 'faellig' || p.status === 'nichtFaellig');

@@ -10,6 +10,7 @@ import { spfi, SPFx, SPFI } from '@pnp/sp';
 import '@pnp/sp/webs';
 import '@pnp/sp/files';
 import '@pnp/sp/folders';
+import { parseUstSatz } from '../../billing/money';
 import { Repository } from '../../data/repositories';
 import { App } from '../../ui/App';
 
@@ -49,7 +50,7 @@ export default class AboAbrechnungWebPart extends BaseClientSideWebPart<IAboAbre
         sp: this._sp,
         repo: this._repo,
         settings: {
-          ustSatz: typeof p.ustSatz === 'number' ? p.ustSatz : Number(String(p.ustSatz).replace(',', '.')) || 20,
+          ustSatz: parseUstSatz(p.ustSatz),
           dateinamenMuster: p.dateinamenMuster || '{rechnungsnummer}_{kundennummer}_{kundenname}',
           vorlageUrl: p.vorlageUrl,
           exportOrdner: p.exportOrdner,
@@ -58,7 +59,13 @@ export default class AboAbrechnungWebPart extends BaseClientSideWebPart<IAboAbre
         exportEnv: {
           sp: this._sp,
           getGraph: () => {
-            if (!this._graph) this._graph = this.context.msGraphClientFactory.getClient('3');
+            if (!this._graph) {
+              // Fehlschlag nicht cachen (z. B. vor der API-Freigabe), sonst bleibt er bis zum Neuladen bestehen
+              this._graph = this.context.msGraphClientFactory.getClient('3').catch((e) => {
+                this._graph = undefined;
+                throw e;
+              });
+            }
             return this._graph;
           },
           siteHost: new URL(web.absoluteUrl).hostname,
@@ -142,7 +149,7 @@ export default class AboAbrechnungWebPart extends BaseClientSideWebPart<IAboAbre
               groupFields: [
                 PropertyPaneTextField('ustSatz', {
                   label: 'USt-Satz (%)',
-                  onGetErrorMessage: (v: string) => (Number(String(v).replace(',', '.')) >= 0 ? '' : 'Zahl angeben, z. B. 20')
+                  onGetErrorMessage: (v: string) => (parseUstSatz(v, -1) >= 0 ? '' : 'Zahl ab 0 angeben, z. B. 20')
                 })
               ]
             }

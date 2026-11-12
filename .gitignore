@@ -6,3 +6,6 @@
 
 # Word-Sperrdateien (entstehen, solange ein Dokument in Word offen ist)
 ~$*
+
+# Testexporte aus SharePoint
+abo-abrechnung/docs/re-*.docx

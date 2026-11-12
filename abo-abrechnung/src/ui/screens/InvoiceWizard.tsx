@@ -23,7 +23,7 @@ import { formatDate, isIsoDate, todayIso } from '../../billing/dates';
 import { formatAmount, formatEuro, formatMonate, parseEuro } from '../../billing/money';
 import { IBilledLine } from '../../billing/types';
 import { hasErrors, IValidationIssue, normalizeNumber, validateInvoice } from '../../billing/validation';
-import { IRechnung, toBilledLines } from '../../data/mapping';
+import { IRechnung, neuesteZuerst, toBilledLines } from '../../data/mapping';
 import { useApp } from '../AppContext';
 import { errorText, useData } from '../DataContext';
 import { DateField } from '../components/DateField';
@@ -113,7 +113,7 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
   const vorgaenger: IRechnung | undefined = data
     ? data.rechnungen
         .filter((r) => r.kundeId === kundeId && r.status === 'Erstellt' && r.id !== rechnungId)
-        .sort((a, b) => (b.rechnungsdatum || '').localeCompare(a.rechnungsdatum || '') || b.id - a.id)[0]
+        .sort(neuesteZuerst)[0]
     : undefined;
 
   const [nummer, setNummer] = React.useState(entwurf ? entwurf.nummer : '');
@@ -192,7 +192,7 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
     setSaveIssues(undefined);
     try {
       // Neuprüfung gegen frisch gelesene Daten
-      const [rechnungen, rpos] = await Promise.all([repo.getRechnungen(), repo.getRechnungspositionen({ positionIds: positionen.map((p) => p.id) })]);
+      const [rechnungen, rpos] = await Promise.all([repo.getRechnungen(), repo.getRechnungspositionen(positionen.map((p) => p.id))]);
       const fresh = toBilledLines(rpos, rechnungen).filter((l) => l.rechnungId !== rechnungId);
       const freshIssues = validateInvoice({
         invoiceNumber: nummer,
@@ -211,7 +211,8 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
         rechnungsdatum: datum,
         vorgaengerId: vorgaenger ? vorgaenger.id : null,
         status,
-        summeNettoCent: draftTotals(rows, positionen, fresh, settings.ustSatz).nettoCent
+        summeNettoCent: draftTotals(rows, positionen, fresh, settings.ustSatz).nettoCent,
+        ustSatz: settings.ustSatz
       };
       const lines = toSaveLines(rows, positionen, fresh);
       const saved = rechnungId ? await repo.updateEntwurf(rechnungId, header, lines) : await repo.createRechnung(header, lines);

@@ -20,7 +20,7 @@ import {
 import { MoreHorizontal20Regular } from '@fluentui/react-icons';
 import { formatDate, todayIso } from '../../billing/dates';
 import { formatEuro } from '../../billing/money';
-import { IPositionItem, IRechnung } from '../../data/mapping';
+import { IPositionItem, IRechnung, neuesteZuerst } from '../../data/mapping';
 import { useApp } from '../AppContext';
 import { errorText, useData } from '../DataContext';
 import { isGekuendigt, laufzeitText, preisText, RECHNUNG_STATUS } from '../derive';
@@ -63,7 +63,7 @@ export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft, onShow }
   const proposals = summary.proposals.filter((p) => showEnded || !isGekuendigt(p.position, today));
   const rechnungen = data.rechnungen
     .filter((r) => r.kundeId === kundeId)
-    .sort((a, b) => (b.rechnungsdatum || '').localeCompare(a.rechnungsdatum || '') || b.id - a.id);
+    .sort(neuesteZuerst);
 
   const hasAnyLine = (positionId: number): boolean => data.rechnungspositionen.some((l) => l.positionId === positionId);
 

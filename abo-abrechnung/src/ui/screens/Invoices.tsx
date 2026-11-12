@@ -13,7 +13,7 @@ import {
 } from '@fluentui/react-components';
 import { formatDate } from '../../billing/dates';
 import { formatEuro } from '../../billing/money';
-import { IRechnung } from '../../data/mapping';
+import { IRechnung, neuesteZuerst } from '../../data/mapping';
 import { useData } from '../DataContext';
 import { InvoiceActions } from '../components/InvoiceActions';
 import { StatusBadge } from '../components/StatusBadge';
@@ -44,7 +44,7 @@ export function Invoices({ onOpenKunde, onEditDraft, onShow }: IInvoicesProps): 
     .reverse();
   const rows = data.rechnungen
     .filter((r) => jahr === 'alle' || (r.rechnungsdatum || '').substring(0, 4) === jahr)
-    .sort((a, b) => (b.rechnungsdatum || '').localeCompare(a.rechnungsdatum || '') || b.id - a.id);
+    .sort(neuesteZuerst);
 
   return (
     <section className={shared.card} aria-labelledby="rechnungen-title">

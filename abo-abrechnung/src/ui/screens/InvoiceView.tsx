@@ -2,14 +2,14 @@ import * as React from 'react';
 import { Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow, makeStyles, mergeClasses, tokens } from '@fluentui/react-components';
 import { formatDate } from '../../billing/dates';
 import { formatEuro, formatMonate, totals } from '../../billing/money';
-import { isActiveLine } from '../../billing/proposal';
-import { IRechnung } from '../../data/mapping';
+import { IRechnung, ustSatzOf } from '../../data/mapping';
+import { timelineRows } from '../../export/timelineModel';
 import { useApp } from '../AppContext';
 import { useData } from '../DataContext';
 import { RECHNUNG_STATUS } from '../derive';
 import { InvoiceActions } from '../components/InvoiceActions';
 import { StatusBadge } from '../components/StatusBadge';
-import { barTooltip, ITimelineRow, Timeline } from '../components/Timeline';
+import { ITimelineRow, Timeline } from '../components/Timeline';
 import { useShared } from '../styles';
 
 const useStyles = makeStyles({
@@ -42,24 +42,21 @@ export function InvoiceView({ rechnungId, onEditDraft, onBack }: IInvoiceViewPro
   const kunde = data.kunden.filter((k) => k.id === r.kundeId)[0];
   const vorgaenger = r.vorgaengerId ? data.rechnungen.filter((x) => x.id === r.vorgaengerId)[0] : undefined;
   const lines = data.rechnungspositionen.filter((l) => l.rechnungId === r.id);
-  const t = totals(lines.map((l) => l.betragCent), settings.ustSatz);
+  const ustSatz = ustSatzOf(r, settings.ustSatz);
+  const t = totals(lines.map((l) => l.betragCent), ustSatz);
   const datum = r.rechnungsdatum || '';
 
   // Zeitleiste: je Position dieser Rechnung alle verrechneten Zeiträume, diese Rechnung hervorgehoben
-  const positionIds = lines.map((l) => l.positionId).filter((id, i, a): id is number => id !== null && a.indexOf(id) === i);
-  const rows: ITimelineRow[] = positionIds.map((pid) => {
-    const pos = data.positionen.filter((p) => p.id === pid)[0];
-    const bars = data.billedLines
-      .filter((b) => b.positionId === pid && b.von && b.bis && (isActiveLine(b) || b.rechnungId === r.id))
-      .map((b) => ({
-        key: `${b.rechnungId}-${b.von}`,
-        von: b.von as string,
-        bis: b.bis as string,
-        kind: b.rechnungId === r.id ? ('current' as const) : ('other' as const),
-        tooltip: barTooltip(`${b.rechnungsnummer || ''}${b.status === 'Entwurf' ? ' (Entwurf)' : ''}`, b.von as string, b.bis as string, formatEuro(b.betragCent || 0))
-      }));
-    return { key: String(pid), title: pos ? pos.title : lines.filter((l) => l.positionId === pid)[0].title, ende: pos ? pos.ende : null, bars };
-  });
+  const rows: ITimelineRow[] = timelineRows(r, lines, data.positionen, data.billedLines).map((row) => ({
+    ...row,
+    bars: row.bars.map((b) => ({
+      key: b.key,
+      von: b.von,
+      bis: b.bis,
+      kind: b.current ? ('current' as const) : ('other' as const),
+      tooltip: `${b.rechnungsnummer}${b.entwurf ? ' (Entwurf)' : ''} · ${formatDate(b.von)} – ${formatDate(b.bis)} · ${formatEuro(b.betragCent)}`
+    }))
+  }));
 
   return (
     <>
@@ -137,7 +134,7 @@ export function InvoiceView({ rechnungId, onEditDraft, onBack }: IInvoiceViewPro
           <dl className={s.dl}>
             <dt className={shared.muted}>Summe netto</dt>
             <dd className={s.right}>{formatEuro(t.nettoCent)}</dd>
-            <dt className={shared.muted}>USt. {String(settings.ustSatz).replace('.', ',')} %</dt>
+            <dt className={shared.muted}>USt. {String(ustSatz).replace('.', ',')} %</dt>
             <dd className={s.right}>{formatEuro(t.ustCent)}</dd>
             <dt className={s.total}>Gesamt brutto</dt>
             <dd className={mergeClasses(s.right, s.total)}>{formatEuro(t.bruttoCent)}</dd>

@@ -32,6 +32,13 @@ describe('validateInvoice', () => {
     expect(proposal.positions.filter((p) => p.position.id === 3)[0].status).toBe('neu');
   });
 
+  it('Storno einer älteren Rechnung: deren Zeitraum ist trotz späterer Rechnung wieder verrechenbar', () => {
+    const lines = [billed(1, '2025-01-01', '2025-12-31', 'Storniert', 'RE-1'), billed(1, '2026-01-01', '2026-12-31', 'Erstellt', 'RE-2')];
+    expect(validateInvoice({ ...base, billedLines: lines, lines: [line('2025-01-01', '2025-12-31')] })).toEqual([]);
+    // eine echte Überschneidung mit RE-2 bleibt gesperrt
+    expect(hasErrors(validateInvoice({ ...base, billedLines: lines, lines: [line('2025-06-01', '2026-02-28')] }))).toBe(true);
+  });
+
   it('erste Verrechnung: Zeitraum frei wählbar, keine Untergrenze und keine Lücken-Warnung', () => {
     expect(validateInvoice({ ...base, billedLines: [], lines: [line('2025-06-15', '2026-07-14')] })).toEqual([]);
     expect(validateInvoice({ ...base, billedLines: [], lines: [line('2019-12-01', '2019-12-31')] })).toEqual([]);
