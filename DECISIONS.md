@@ -153,7 +153,7 @@ Das Modell ist bewusst einfach: **Jede Position hat einen Jahrespreis und eigene
   - Rechnungspositionen werden parallel gespeichert.
   - Nach dem PDF-Link wird nicht mehr alles neu geladen.
   - Graph-Abfragen laufen parallel, die Site-Id wird gemerkt.
-  - Die Word-Bibliotheken werden erst beim Export geladen.
+  - Die Word-Bibliotheken bleiben bewusst im Hauptpaket. Nachladen hat beim Test einen Ladefehler verursacht und spart hier kaum etwas.
 - **Bewusst nicht geändert:** Die Pflichtspalte `Beginn` in früher angelegten Listen bleibt Pflicht. Die Einrichtung baut bestehende Spalten nie um, deshalb füllt die App sie beim Anlegen weiter mit dem Erfassungsdatum.
 
 ## Toolchain

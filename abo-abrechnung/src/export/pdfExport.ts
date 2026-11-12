@@ -3,6 +3,7 @@ import '@pnp/sp/webs';
 import '@pnp/sp/files';
 import '@pnp/sp/folders';
 import type { MSGraphClientV3 } from '@microsoft/sp-http';
+import { fillTemplate } from './fillTemplate';
 import { buildTemplateData, ExportVariante, fileName, IExportInput } from './templateData';
 
 export interface IExportEnv {
@@ -134,11 +135,8 @@ export async function exportPdf(
   }
 
   progress('Vorlage wird geladen …');
-  // Word-Bibliotheken (docxtemplater, pizzip) erst beim Export nachladen, nicht beim Seitenaufbau
-  const [template, { fillTemplate }] = await Promise.all([
-    sp.web.getFileByServerRelativePath(trimSlash(config.vorlageUrl as string)).getBuffer(),
-    import(/* webpackChunkName: 'abo-abrechnung-docx' */ './fillTemplate')
-  ]);
+  // Word-Bibliotheken bewusst statisch gebündelt: Nachladen (Chunk) kann fehlschlagen und spart hier kaum etwas
+  const template = await sp.web.getFileByServerRelativePath(trimSlash(config.vorlageUrl as string)).getBuffer();
 
   progress('Vorlage wird befüllt …');
   const filled = fillTemplate(template, buildTemplateData(input, variante));
