@@ -135,7 +135,7 @@ Das Modell ist bewusst einfach: **Jede Position hat einen Jahrespreis und eigene
 
 ## Review vom 12.11.2026 (Qualität und Effizienz)
 
-- **USt-Satz bei der Rechnung:** Er wird beim Erstellen gespeichert (neue Spalte `UstSatz` in `AA_Rechnungen`). Anzeige und Export alter Rechnungen ändern sich daher nicht mehr, wenn die Einstellung geändert wird. Rechnungen ohne gespeicherten Satz verwenden den aktuellen. Bei einer bereits eingerichteten Site bietet „Listen einrichten“ an, die Spalte zu ergänzen.
+- **USt-Satz bei der Rechnung:** Im Rechnungsdialog frei eintragbar (vorbelegt aus den Webpart-Einstellungen) und beim Speichern gespeichert (neue Spalte `UstSatz` in `AA_Rechnungen`). Anzeige und Export alter Rechnungen ändern sich daher nicht mehr, wenn die Einstellung geändert wird. Rechnungen ohne gespeicherten Satz verwenden den aktuellen. Bei einer bereits eingerichteten Site bietet „Listen einrichten“ an, die Spalte zu ergänzen.
 - **USt 0 %** ist gültig. Vorher wurde 0 % stillschweigend zu 20 %.
 - **Storno einer älteren Rechnung:** Ihr Zeitraum ist wieder verrechenbar, auch wenn danach schon eine weitere Rechnung erstellt wurde. Gesperrt wird nur eine echte Überschneidung mit aktiven Zeiträumen. Die Regel „Von vor dem nächsten offenen Tag“ aus dem Plan entfällt, weil die Überschneidungsprüfung Doppelverrechnung bereits vollständig ausschließt.
 - **Entwurf speichern:** Erst werden die neuen Positionen angelegt, dann die alten gelöscht. Ein Fehler mittendrin vernichtet den Entwurf nicht mehr.

@@ -20,10 +20,10 @@ import {
 } from '@fluentui/react-components';
 import { Delete20Regular } from '@fluentui/react-icons';
 import { formatDate, isIsoDate, todayIso } from '../../billing/dates';
-import { formatAmount, formatEuro, formatMonate, formatZahl, parseEuro } from '../../billing/money';
+import { formatAmount, formatEuro, formatMonate, formatZahl, parseEuro, parseUstSatz } from '../../billing/money';
 import { IBilledLine } from '../../billing/types';
 import { hasErrors, IValidationIssue, validateInvoice } from '../../billing/validation';
-import { IRechnung, neuesteZuerst, toBilledLines } from '../../data/mapping';
+import { IRechnung, neuesteZuerst, toBilledLines, ustSatzOf } from '../../data/mapping';
 import { useApp } from '../AppContext';
 import { errorText, useData } from '../DataContext';
 import { DateField } from '../components/DateField';
@@ -111,6 +111,9 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
 
   const [nummer, setNummer] = React.useState(entwurf ? entwurf.nummer : '');
   const [datum, setDatum] = React.useState(entwurf && entwurf.rechnungsdatum ? entwurf.rechnungsdatum : todayIso());
+  // USt-Satz je Rechnung frei eintragbar; vorbelegt mit dem Satz des Entwurfs bzw. der Einstellung
+  const [ustText, setUstText] = React.useState(formatZahl(entwurf ? ustSatzOf(entwurf, settings.ustSatz) : settings.ustSatz));
+  const ust = parseUstSatz(ustText, -1);
   const ctx = React.useMemo(() => draftContext(positionen, billed), [positionen, billed]);
   const [rows, setRows] = React.useState<IDraftRow[]>(() => {
     const base = buildRows(positionen, billed, datum);
@@ -133,14 +136,15 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
       billedLines: billed
     });
     if (!isIsoDate(datum)) list.push({ severity: 'error', message: 'Rechnungsdatum fehlt.' });
+    if (ust < 0) list.push({ severity: 'error', message: 'USt-Satz als Zahl ab 0 angeben, z. B. 20.' });
     if (selectedRows(rows).length === 0) list.push({ severity: 'error', message: 'Keine Position ausgewählt.' });
     return list;
-  }, [nummer, datum, rows, positionen, billed, otherNumbers]);
+  }, [nummer, datum, ust, rows, positionen, billed, otherNumbers]);
   const shown = saveIssues || issues;
   const errors = shown.filter((i) => i.severity === 'error');
   const warnings = shown.filter((i) => i.severity === 'warning');
   const nummerFehler = nummer.trim() ? issues.filter((i) => i.field === 'nummer')[0] : undefined;
-  const t = draftTotals(rows, calcs, settings.ustSatz);
+  const t = draftTotals(rows, calcs, Math.max(0, ust));
 
   if (!data || !kunde) return <p>Kunde nicht gefunden.</p>;
   if (rechnungId && (!entwurf || entwurf.status !== 'Entwurf')) {
@@ -204,8 +208,8 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
         rechnungsdatum: datum,
         vorgaengerId: vorgaenger ? vorgaenger.id : null,
         status,
-        summeNettoCent: draftTotals(rows, calcRows(rows, freshCtx), settings.ustSatz).nettoCent,
-        ustSatz: settings.ustSatz
+        summeNettoCent: draftTotals(rows, calcRows(rows, freshCtx), ust).nettoCent,
+        ustSatz: ust
       };
       const lines = toSaveLines(rows, freshCtx);
       const saved = rechnungId ? await repo.updateEntwurf(rechnungId, header, lines) : await repo.createRechnung(header, lines);
@@ -244,6 +248,9 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
             <Input value={nummer} onChange={(_, d) => setNummer(d.value)} />
           </Field>
           <DateField label="Rechnungsdatum" required value={datum} onChange={changeDatum} hint="bestimmt, welche Folgezeiträume vorausgewählt sind" />
+          <Field label="USt-Satz" required validationMessage={ust < 0 ? 'Zahl ab 0 angeben' : undefined} hint="Vorbelegt aus den Webpart-Einstellungen">
+            <Input inputMode="decimal" value={ustText} contentAfter="%" onChange={(_, d) => setUstText(d.value)} />
+          </Field>
         </div>
       </header>
 
@@ -378,7 +385,7 @@ export function InvoiceWizard({ kundeId, rechnungId, onDone, onCancel }: IInvoic
             </TableBody>
           </Table>
         </div>
-        <TotalsBlock totals={t} ustSatz={settings.ustSatz} />
+        <TotalsBlock totals={t} ustSatz={Math.max(0, ust)} />
       </section>
 
       <footer className={s.footer}>
