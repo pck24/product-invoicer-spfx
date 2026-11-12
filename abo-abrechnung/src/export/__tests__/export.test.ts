@@ -4,7 +4,8 @@ import * as path from 'path';
 import PizZip from 'pizzip';
 import { huberLines, huberPositions } from '../../billing/__tests__/fixtures';
 import { IKunde, IPositionItem, IRechnung, IRechnungsposition } from '../../data/mapping';
-import { fillTemplate } from '../fillTemplate';
+import { fillTemplate, textWidthTwips } from '../fillTemplate';
+import { timelineSvg, wrapText } from '../timelineImage';
 import { buildTemplateData, fileName, IExportInput, timelineXml } from '../templateData';
 
 const kunde: IKunde = { id: 1, name: 'Bäckerei Huber GmbH', kundennummer: 'K-1001', adresse: 'Hauptstraße 12\n4020 Linz', aktiv: true };
@@ -131,5 +132,44 @@ describe('Beispielvorlage befüllen', () => {
   it('Tabelleneigenschaften in Schema-Reihenfolge (tblBorders vor tblLayout)', () => {
     const xml = timelineXml(input);
     expect(xml.indexOf('<w:tblBorders>')).toBeLessThan(xml.indexOf('<w:tblLayout'));
+  });
+});
+
+describe('Zeitleiste als Bild', () => {
+  it('SVG mit Jahren, Bezeichnungen, Balken und Legende', () => {
+    const res = timelineSvg(input);
+    expect(res).not.toBeNull();
+    const svg = (res as { svg: string }).svg;
+    expect(svg).toContain('>2026<');
+    expect(svg).toContain('>2027<');
+    expect(svg).toContain('Microsoft 365 Business Standard');
+    expect(svg).toContain('Rechnungsdatum 08.01.2027');
+    expect(svg).toContain('#C4262E'); // Markierung
+    expect(svg).toContain('#4A86C8'); // Balken dieser Rechnung
+  });
+
+  it('lange Bezeichnungen werden auf höchstens zwei Zeilen umgebrochen und gekürzt', () => {
+    const measure = (t: string): number => t.length * 10;
+    expect(wrapText('Microsoft Defender for Office 365 P1', 200, '', measure, 2)).toEqual(['Microsoft Defender', 'for Office 365 P1']);
+    const lines = wrapText('sehr langer Name einer Position mit noch mehr Text dahinter', 200, '', measure, 2);
+    expect(lines).toHaveLength(2);
+    expect(lines[1].length * 10).toBeLessThanOrEqual(200);
+    expect(lines[1].endsWith('…')).toBe(true);
+  });
+
+  it('Textbreite aus den Seitenangaben der Vorlage', () => {
+    expect(textWidthTwips('<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1417" w:right="1134" w:bottom="1134" w:left="1417"/></w:sectPr>')).toBe(9355);
+    expect(textWidthTwips('<w:body/>')).toBe(9026);
+  });
+
+  it('Bild ersetzt die Tabelle: PNG, Beziehung und Inhaltstyp im Paket', () => {
+    const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]).buffer;
+    const out = new PizZip(fillTemplate(ab, buildTemplateData(input, 'mitKosten'), { png, width: 760, height: 300 }).content);
+    const doc = out.file('word/document.xml')?.asText() || '';
+    expect(doc).toContain('r:embed="rIdAaZeitleiste"');
+    expect(doc).not.toContain('C4262E'); // keine Tabellen-Zeitleiste
+    expect(out.file('word/media/aa_zeitleiste.png')).toBeTruthy();
+    expect(out.file('word/_rels/document.xml.rels')?.asText()).toContain('Target="media/aa_zeitleiste.png"');
+    expect(out.file('[Content_Types].xml')?.asText()).toMatch(/Extension="png"/i);
   });
 });

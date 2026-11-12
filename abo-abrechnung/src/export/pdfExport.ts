@@ -5,6 +5,7 @@ import '@pnp/sp/folders';
 import type { MSGraphClientV3 } from '@microsoft/sp-http';
 import { fillTemplate } from './fillTemplate';
 import { buildTemplateData, ExportVariante, fileName, IExportInput } from './templateData';
+import { ITimelineImage, renderTimelinePng } from './timelineImage';
 
 export interface IExportEnv {
   sp: SPFI;
@@ -182,7 +183,14 @@ export async function exportPdf(
   const template = await sp.web.getFileByServerRelativePath(trimSlash(config.vorlageUrl as string)).getBuffer();
 
   progress('Vorlage wird befüllt …');
-  const filled = fillTemplate(template, buildTemplateData(input, variante));
+  // Zeitleiste als Bild (wie in der App); scheitert das Zeichnen, bleibt die Tabelle
+  let bild: ITimelineImage | null = null;
+  try {
+    bild = await renderTimelinePng(input);
+  } catch (e) {
+    console.warn('[Abo-Abrechnung] Zeitleiste als Bild nicht möglich, verwende Tabelle', e);
+  }
+  const filled = fillTemplate(template, buildTemplateData(input, variante), bild || undefined);
 
   const folder = sp.web.getFolderByServerRelativePath(folderUrl);
   if (asDocx) {
