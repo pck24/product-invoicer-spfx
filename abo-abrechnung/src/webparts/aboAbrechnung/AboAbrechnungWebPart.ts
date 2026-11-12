@@ -22,6 +22,10 @@ export interface IAboAbrechnungWebPartProps {
   ausgabeformat?: 'pdf' | 'docx';
 }
 
+/** Standardwerte, wenn im Property Pane nichts eingetragen ist. */
+const STANDARD_VORLAGE = '/sites/JustElevate-Kunden/Freigegebene Dokumente/briefpapier.docx';
+const STANDARD_EXPORTORDNER = '/sites/JustElevate-Kunden/Freigegebene Dokumente';
+
 export default class AboAbrechnungWebPart extends BaseClientSideWebPart<IAboAbrechnungWebPartProps> {
   private _root: Root | undefined;
   private _sp!: SPFI;
@@ -52,8 +56,8 @@ export default class AboAbrechnungWebPart extends BaseClientSideWebPart<IAboAbre
         settings: {
           ustSatz: parseUstSatz(p.ustSatz),
           dateinamenMuster: p.dateinamenMuster || '{rechnungsnummer}_{kundennummer}_{kundenname}',
-          vorlageUrl: p.vorlageUrl,
-          exportOrdner: p.exportOrdner,
+          vorlageUrl: (p.vorlageUrl || '').trim() || STANDARD_VORLAGE,
+          exportOrdner: (p.exportOrdner || '').trim() || STANDARD_EXPORTORDNER,
           ausgabeformat: p.ausgabeformat === 'docx' ? 'docx' : 'pdf'
         },
         exportEnv: {
@@ -106,7 +110,6 @@ export default class AboAbrechnungWebPart extends BaseClientSideWebPart<IAboAbre
   }
 
   protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
-    const site = this.context.pageContext.web.serverRelativeUrl.replace(/\/$/, '');
     return {
       pages: [
         {
@@ -117,13 +120,13 @@ export default class AboAbrechnungWebPart extends BaseClientSideWebPart<IAboAbre
               groupFields: [
                 PropertyPaneTextField('vorlageUrl', {
                   label: 'Word-Vorlage (.docx)',
-                  description: 'Serverrelative URL, z. B. ' + site + '/Freigegebene Dokumente/Vorlagen/Rechnungsvorlage.docx',
+                  description: `Serverrelative URL. Leer = ${STANDARD_VORLAGE}`,
                   onGetErrorMessage: (v: string) => this._checkPath(v, 'datei'),
                   deferredValidationTime: 500
                 }),
                 PropertyPaneTextField('exportOrdner', {
                   label: 'Export-Ordner',
-                  description: 'Serverrelative URL eines Ordners in einer Dokumentbibliothek, z. B. ' + site + '/Freigegebene Dokumente/Rechnungen',
+                  description: `Serverrelative URL eines Ordners in einer Dokumentbibliothek. Leer = ${STANDARD_EXPORTORDNER}`,
                   onGetErrorMessage: (v: string) => this._checkPath(v, 'ordner'),
                   deferredValidationTime: 500
                 }),
