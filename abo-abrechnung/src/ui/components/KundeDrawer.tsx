@@ -13,7 +13,7 @@ import {
   Textarea
 } from '@fluentui/react-components';
 import { Dismiss24Regular } from '@fluentui/react-icons';
-import { suggestNumber } from '../../billing/numbering';
+import { nextKundennummer } from '../../billing/numbering';
 import { IKunde } from '../../data/mapping';
 import { useApp } from '../AppContext';
 import { errorText, useData } from '../DataContext';
@@ -42,7 +42,7 @@ export function KundeDrawer({ open, kunde, onClose, onSaved }: IKundeDrawerProps
   React.useEffect(() => {
     if (!open) return;
     setName(kunde ? kunde.name : '');
-    setNummer(kunde ? kunde.kundennummer : suggestNumber('K-{NNNN}', andere.map((k) => k.kundennummer), new Date().getFullYear()));
+    setNummer(kunde ? kunde.kundennummer : nextKundennummer(andere.map((k) => k.kundennummer)));
     setAdresse(kunde ? kunde.adresse : '');
     setTouched(false);
     setError(undefined);

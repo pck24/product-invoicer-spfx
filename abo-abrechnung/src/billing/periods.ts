@@ -8,10 +8,20 @@ import { ISODate } from './types';
  */
 export function anchorIndex(anchor: ISODate, date: ISODate): number {
   if (date < anchor) return -1;
-  const k =
-    (Number(date.substring(0, 4)) - Number(anchor.substring(0, 4))) * 12 +
-    (Number(date.substring(5, 7)) - Number(anchor.substring(5, 7)));
+  const k = monthDiff(anchor, date);
   return addMonthsIso(anchor, k) === date ? k : -1;
+}
+
+/** Kalendermonate zwischen zwei Daten (nur Jahr/Monat, ohne Tage). */
+function monthDiff(a: ISODate, b: ISODate): number {
+  return (Number(b.substring(0, 4)) - Number(a.substring(0, 4))) * 12 + (Number(b.substring(5, 7)) - Number(a.substring(5, 7)));
+}
+
+/** Raster für ein Datum: am Anker, wenn das Datum darauf liegt, sonst am Datum selbst (k = Index im Raster). */
+export function resolveAnchor(anchor: ISODate | undefined, date: ISODate): { base: ISODate; k: number } {
+  const base = anchor || date;
+  const k = anchorIndex(base, date);
+  return k < 0 ? { base: date, k: 0 } : { base, k };
 }
 
 /**
@@ -22,14 +32,11 @@ export function anchorIndex(anchor: ISODate, date: ISODate): number {
  */
 export function monthsX100(von: ISODate, bis: ISODate, anchor?: ISODate): number {
   if (bis < von) return 0;
-  let base = anchor || von;
-  let k0 = anchorIndex(base, von);
-  if (k0 < 0) {
-    base = von;
-    k0 = 0;
-  }
+  const { base, k: k0 } = resolveAnchor(anchor, von);
   const end = addDaysIso(bis, 1); // exklusives Ende
-  let n = 0;
+  // volle Monate direkt schätzen und um höchstens einen korrigieren (O(1) statt Schleife je Monat)
+  let n = Math.max(0, monthDiff(base, end) - k0);
+  while (n > 0 && addMonthsIso(base, k0 + n) > end) n--;
   while (addMonthsIso(base, k0 + n + 1) <= end) n++;
   const restStart = addMonthsIso(base, k0 + n);
   const restDays = diffDays(restStart, end);

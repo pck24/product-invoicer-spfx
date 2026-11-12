@@ -21,6 +21,8 @@ export interface IRechnung {
   vorgaengerId: number | null;
   status: RechnungsStatus;
   summeNettoCent: number;
+  /** USt-Satz bei Erstellung; null bei älteren Rechnungen (dann gilt der aktuelle Satz) */
+  ustSatz?: number | null;
   pdfUrl: string | null;
 }
 
@@ -44,8 +46,10 @@ export type SPItem = Record<string, any>;
 /**
  * Datumsfelder sind "DateOnly". SharePoint speichert sie als Mitternacht in der
  * Zeitzone der Site und liefert sie in UTC (z. B. 2026-12-31T23:00:00Z für den
- * 01.01.2027 in Wien). Geschrieben wird daher 12:00 UTC, gelesen wird auf den
- * nächstgelegenen Tag gerundet (+12 h, Datumsteil). Gilt für Zeitzonen bis ±11 h.
+ * 01.01.2027 in Wien) – je nach Spalte aber auch unverändert (12:00 UTC).
+ * Geschrieben wird 12:00 UTC; gelesen wird +11 h und davon der Datumsteil:
+ * 12:00 UTC und früher → derselbe Tag, ab 13:00 UTC (Mitternacht in UTC+1 … +11)
+ * → Folgetag. (+12 h würde 12:00 UTC auf den Folgetag schieben → Datum wandert.)
  */
 export function toSpDate(value: ISODate | null): string | null {
   return value ? `${value}T12:00:00Z` : null;
@@ -55,7 +59,7 @@ export function fromSpDate(value: string | null | undefined): ISODate | null {
   if (!value) return null;
   const ms = Date.parse(value);
   if (isNaN(ms)) return null;
-  return new Date(ms + 12 * 3600 * 1000).toISOString().substring(0, 10);
+  return new Date(ms + 11 * 3600 * 1000).toISOString().substring(0, 10);
 }
 
 export function toCent(euro: number | null | undefined): number {
@@ -64,8 +68,8 @@ export function toCent(euro: number | null | undefined): number {
 
 export const KUNDE_FIELDS = ['Id', 'Title', 'Kundennummer', 'Adresse', 'Aktiv'];
 export const POSITION_FIELDS = ['Id', 'Title', 'KundeId', 'Menge', 'Preis', 'LaufzeitMonate', 'Ende'];
-export const RECHNUNG_FIELDS = ['Id', 'Title', 'KundeId', 'Rechnungsdatum', 'VorgaengerId', 'Status', 'SummeNettoCent', 'PdfLink'];
-export const RECHNUNGSPOSITION_FIELDS = ['Id', 'Title', 'RechnungId', 'PositionId', 'Von', 'Bis', 'Monate', 'Menge', 'EinzelpreisCent', 'BetragCent', 'Art'];
+export const RECHNUNG_FIELDS = ['Id', 'Title', 'KundeId', 'Rechnungsdatum', 'VorgaengerId', 'Status', 'SummeNetto', 'UstSatz', 'PdfLink'];
+export const RECHNUNGSPOSITION_FIELDS = ['Id', 'Title', 'RechnungId', 'PositionId', 'Von', 'Bis', 'Monate', 'Menge', 'Jahrespreis', 'Betrag', 'Art'];
 
 export function kundeFromItem(i: SPItem): IKunde {
   return {
@@ -116,9 +120,20 @@ export function rechnungFromItem(i: SPItem): IRechnung {
     rechnungsdatum: fromSpDate(i.Rechnungsdatum),
     vorgaengerId: i.VorgaengerId || null,
     status: status(i.Status),
-    summeNettoCent: i.SummeNettoCent || 0,
+    summeNettoCent: toCent(i.SummeNetto),
+    ustSatz: typeof i.UstSatz === 'number' ? i.UstSatz : null,
     pdfUrl: (i.PdfLink && i.PdfLink.Url) || null
   };
+}
+
+/** Sortierung: neueste Rechnung zuerst (Rechnungsdatum, dann Id). */
+export function neuesteZuerst(a: IRechnung, b: IRechnung): number {
+  return (b.rechnungsdatum || '').localeCompare(a.rechnungsdatum || '') || b.id - a.id;
+}
+
+/** USt-Satz einer Rechnung: gespeicherter Satz, sonst der aktuelle aus den Einstellungen. */
+export function ustSatzOf(r: IRechnung, aktuell: number): number {
+  return typeof r.ustSatz === 'number' ? r.ustSatz : aktuell;
 }
 
 export function rechnungToItem(r: Omit<IRechnung, 'id' | 'pdfUrl'>): SPItem {
@@ -128,12 +143,14 @@ export function rechnungToItem(r: Omit<IRechnung, 'id' | 'pdfUrl'>): SPItem {
     Rechnungsdatum: toSpDate(r.rechnungsdatum),
     VorgaengerId: r.vorgaengerId,
     Status: r.status,
-    SummeNettoCent: r.summeNettoCent
+    SummeNetto: r.summeNettoCent / 100,
+    UstSatz: typeof r.ustSatz === 'number' ? r.ustSatz : null
   };
 }
 
 export function rechnungspositionFromItem(i: SPItem): IRechnungsposition {
-  const art: Art = ['Folgezeitraum', 'Anteilig', 'Nachverrechnung'].indexOf(i.Art) >= 0 ? i.Art : 'Einmalig';
+  // "Nachverrechnung" (Altwert der Liste) ist ein normaler Zeitraum
+  const art: Art = i.Art === 'Anteilig' ? 'Anteilig' : i.Art === 'Folgezeitraum' || i.Art === 'Nachverrechnung' ? 'Folgezeitraum' : 'Einmalig';
   return {
     id: i.Id,
     rechnungId: i.RechnungId || null,
@@ -143,8 +160,8 @@ export function rechnungspositionFromItem(i: SPItem): IRechnungsposition {
     bis: fromSpDate(i.Bis),
     monateX100: Math.round((i.Monate || 0) * 100),
     menge: i.Menge === null || i.Menge === undefined ? 1 : i.Menge,
-    einzelpreisCent: i.EinzelpreisCent || 0,
-    betragCent: i.BetragCent || 0,
+    einzelpreisCent: toCent(i.Jahrespreis),
+    betragCent: toCent(i.Betrag),
     art
   };
 }
@@ -158,8 +175,8 @@ export function rechnungspositionToItem(r: Omit<IRechnungsposition, 'id'>): SPIt
     Bis: toSpDate(r.bis),
     Monate: r.monateX100 / 100,
     Menge: r.menge,
-    EinzelpreisCent: r.einzelpreisCent,
-    BetragCent: r.betragCent,
+    Jahrespreis: r.einzelpreisCent / 100,
+    Betrag: r.betragCent / 100,
     Art: r.art
   };
 }

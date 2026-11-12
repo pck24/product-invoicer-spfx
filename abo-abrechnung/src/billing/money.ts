@@ -58,8 +58,23 @@ export function parseEuro(value: string): number | null {
   return m[1] === '-' ? -cent : cent;
 }
 
+/** USt-Satz aus Eingabe ("20", "20,5", 0); ungültig oder leer → fallback. 0 % ist gültig. */
+export function parseUstSatz(value: unknown, fallback = 20): number {
+  if (typeof value === 'number') return isFinite(value) && value >= 0 ? value : fallback;
+  const s = String(value === undefined || value === null ? '' : value)
+    .trim()
+    .replace(',', '.');
+  const n = s === '' ? NaN : Number(s);
+  return isFinite(n) && n >= 0 ? n : fallback;
+}
+
 /** 1200 → "12", 455 → "4,55" */
 export function formatMonate(monateX100: number): string {
   if (monateX100 % 100 === 0) return String(monateX100 / 100);
   return formatAmount(monateX100);
+}
+
+/** Dezimalzahl mit bis zu 2 Stellen: 5 → "5", 20.5 → "20,5", 1500 → "1.500" */
+export function formatZahl(value: number): string {
+  return formatAmount(Math.round(value * 100)).replace(/,00$/, '').replace(/(,\d)0$/, '$1');
 }

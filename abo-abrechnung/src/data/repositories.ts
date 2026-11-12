@@ -27,13 +27,37 @@ import {
   toSpDate
 } from './mapping';
 
-/** Obergrenze je Abfrage; für eine Einzelunternehmer-Abrechnung reichlich. */
-const MAX_ITEMS = 5000;
+const PAGE_SIZE = 2000;
 
-async function readAll(list: IList, fields: string[], filter?: string): Promise<SPItem[]> {
-  let query = list.items.select(...fields).top(MAX_ITEMS);
-  if (filter) query = query.filter(filter);
-  return query();
+/**
+ * Liest alle Elemente seitenweise über die (immer indizierte) Id, damit auch
+ * Listen über der 5.000er-Schwelle vollständig gelesen werden.
+ */
+export async function readAll(list: IList, fields: string[], filter?: string): Promise<SPItem[]> {
+  const select = fields.indexOf('Id') >= 0 ? fields : fields.concat('Id');
+  const result: SPItem[] = [];
+  let lastId = 0;
+  for (;;) {
+    const f = `Id gt ${lastId}${filter ? ` and (${filter})` : ''}`;
+    const page: SPItem[] = await list.items.select(...select).filter(f).orderBy('Id', true).top(PAGE_SIZE)();
+    result.push(...page);
+    if (page.length < PAGE_SIZE) return result;
+    lastId = page[page.length - 1].Id;
+  }
+}
+
+/** Löscht Elemente; Fehler einzelner Elemente werden optional ignoriert (Aufräumen). */
+async function deleteItems(list: IList, ids: number[], ignoreErrors = false): Promise<void> {
+  await Promise.all(
+    ids.map((id) =>
+      list.items
+        .getById(id)
+        .delete()
+        .catch((e) => {
+          if (!ignoreErrors) throw e;
+        })
+    )
+  );
 }
 
 export class Repository {
@@ -61,9 +85,8 @@ export class Repository {
 
   // ---------- Positionen ----------
 
-  public async getPositionen(kundeId?: number): Promise<IPositionItem[]> {
-    const filter = kundeId ? `KundeId eq ${kundeId}` : undefined;
-    return (await readAll(this.list(LIST.Positionen), POSITION_FIELDS, filter)).map(positionFromItem);
+  public async getPositionen(): Promise<IPositionItem[]> {
+    return (await readAll(this.list(LIST.Positionen), POSITION_FIELDS)).map(positionFromItem);
   }
 
   public async savePosition(position: Omit<IPositionItem, 'id'>, id?: number): Promise<IPositionItem> {
@@ -86,24 +109,35 @@ export class Repository {
 
   // ---------- Rechnungen ----------
 
-  public async getRechnungen(kundeId?: number): Promise<IRechnung[]> {
-    const filter = kundeId ? `KundeId eq ${kundeId}` : undefined;
-    return (await readAll(this.list(LIST.Rechnungen), RECHNUNG_FIELDS, filter)).map(rechnungFromItem);
+  public async getRechnungen(): Promise<IRechnung[]> {
+    return (await readAll(this.list(LIST.Rechnungen), RECHNUNG_FIELDS)).map(rechnungFromItem);
   }
 
-  public async getRechnungspositionen(filter?: { rechnungId?: number; positionIds?: number[] }): Promise<IRechnungsposition[]> {
-    let f: string | undefined;
-    if (filter && filter.rechnungId) f = `RechnungId eq ${filter.rechnungId}`;
-    else if (filter && filter.positionIds) {
-      if (filter.positionIds.length === 0) return [];
-      f = filter.positionIds.map((id) => `PositionId eq ${id}`).join(' or ');
-    }
+  /** Alle Rechnungspositionen oder nur die der angegebenen Positionen. */
+  public async getRechnungspositionen(positionIds?: number[]): Promise<IRechnungsposition[]> {
+    if (positionIds && positionIds.length === 0) return [];
+    const f = positionIds ? positionIds.map((id) => `PositionId eq ${id}`).join(' or ') : undefined;
     return (await readAll(this.list(LIST.Rechnungspositionen), RECHNUNGSPOSITION_FIELDS, f)).map(rechnungspositionFromItem);
   }
 
-  /** Alle Rechnungsnummern (für Eindeutigkeit und Nummernvorschlag). */
-  public async getRechnungsnummern(): Promise<string[]> {
-    return (await readAll(this.list(LIST.Rechnungen), ['Title'])).map((i) => i.Title as string);
+  /** Legt Rechnungspositionen parallel an; schlägt eine fehl, werden die angelegten wieder entfernt. */
+  private async addLines(rechnungId: number, lines: Omit<IRechnungsposition, 'id' | 'rechnungId'>[]): Promise<number[]> {
+    const list = this.list(LIST.Rechnungspositionen);
+    const results = await Promise.all(
+      lines.map((line) =>
+        list.items.add(rechnungspositionToItem({ ...line, rechnungId })).then(
+          (added: SPItem) => ({ id: added.Id as number, error: undefined as unknown }),
+          (error: unknown) => ({ id: 0, error })
+        )
+      )
+    );
+    const failed = results.filter((r) => r.error !== undefined)[0];
+    const ids = results.filter((r) => r.error === undefined).map((r) => r.id);
+    if (failed) {
+      await deleteItems(list, ids, true);
+      throw failed.error;
+    }
+    return ids;
   }
 
   /**
@@ -116,22 +150,19 @@ export class Repository {
   ): Promise<IRechnung> {
     const added: SPItem = await this.list(LIST.Rechnungen).items.add(rechnungToItem(rechnung));
     const rechnungId: number = added.Id;
-    const lineIds: number[] = [];
     try {
-      for (const line of lines) {
-        const l: SPItem = await this.list(LIST.Rechnungspositionen).items.add(rechnungspositionToItem({ ...line, rechnungId }));
-        lineIds.push(l.Id);
-      }
+      await this.addLines(rechnungId, lines);
     } catch (e) {
-      await this.rollback(rechnungId, lineIds);
+      await deleteItems(this.list(LIST.Rechnungen), [rechnungId], true);
       throw e;
     }
     return { ...rechnung, id: rechnungId, pdfUrl: null };
   }
 
   /**
-   * Überschreibt einen Entwurf: Kopf aktualisieren, alte Positionen löschen, neue anlegen.
-   * Nur für Status Entwurf (wird frisch geprüft).
+   * Überschreibt einen Entwurf. Erst werden die neuen Positionen angelegt (mit Rollback),
+   * dann die alten gelöscht, zuletzt Kopf und Status gesetzt – so geht bei einem Fehler
+   * der bisherige Inhalt nicht verloren.
    */
   public async updateEntwurf(
     id: number,
@@ -141,35 +172,19 @@ export class Repository {
     const item: SPItem = await this.list(LIST.Rechnungen).items.getById(id).select('Status')();
     if (item.Status !== 'Entwurf') throw new Error('Nur Entwürfe können bearbeitet werden.');
     const old = await readAll(this.list(LIST.Rechnungspositionen), ['Id'], `RechnungId eq ${id}`);
-    for (const l of old) await this.list(LIST.Rechnungspositionen).items.getById(l.Id).delete();
-    for (const line of lines) await this.list(LIST.Rechnungspositionen).items.add(rechnungspositionToItem({ ...line, rechnungId: id }));
-    // Status zuletzt setzen: schlägt vorher etwas fehl, bleibt es ein Entwurf
+    await this.addLines(id, lines);
+    await deleteItems(
+      this.list(LIST.Rechnungspositionen),
+      old.map((l) => l.Id as number)
+    );
     await this.list(LIST.Rechnungen).items.getById(id).update(rechnungToItem(rechnung));
     return { ...rechnung, id, pdfUrl: null };
   }
 
-  private async rollback(rechnungId: number, lineIds: number[]): Promise<void> {
-    for (const id of lineIds) {
-      try {
-        await this.list(LIST.Rechnungspositionen).items.getById(id).delete();
-      } catch {
-        // weiter aufräumen
-      }
-    }
-    try {
-      await this.list(LIST.Rechnungen).items.getById(rechnungId).delete();
-    } catch {
-      // Ursprünglicher Fehler wird vom Aufrufer gemeldet
-    }
-  }
-
-  public async setStatus(id: number, status: RechnungsStatus): Promise<void> {
-    await this.list(LIST.Rechnungen).items.getById(id).update({ Status: status });
-  }
-
   /** Storniert eine erstellte Rechnung; ihre Zeiträume sind danach wieder frei. */
   public async stornieren(id: number): Promise<void> {
-    await this.setStatus(id, 'Storniert');
+    const status: RechnungsStatus = 'Storniert';
+    await this.list(LIST.Rechnungen).items.getById(id).update({ Status: status });
   }
 
   /** Löscht einen Entwurf samt Positionen. Andere Status werden abgelehnt. */
@@ -177,7 +192,10 @@ export class Repository {
     const item: SPItem = await this.list(LIST.Rechnungen).items.getById(id).select('Status')();
     if (item.Status !== 'Entwurf') throw new Error('Nur Entwürfe dürfen gelöscht werden.');
     const lines = await readAll(this.list(LIST.Rechnungspositionen), ['Id'], `RechnungId eq ${id}`);
-    for (const l of lines) await this.list(LIST.Rechnungspositionen).items.getById(l.Id).delete();
+    await deleteItems(
+      this.list(LIST.Rechnungspositionen),
+      lines.map((l) => l.Id as number)
+    );
     await this.list(LIST.Rechnungen).items.getById(id).delete();
   }
 

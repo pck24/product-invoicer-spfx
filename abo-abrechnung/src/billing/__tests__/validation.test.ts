@@ -1,4 +1,4 @@
-import { proposeInvoice } from '../proposal';
+import { faelligeSegmente, proposeInvoice } from '../proposal';
 import { hasErrors, IDraftLine, validateInvoice } from '../validation';
 import { billed, HUBER_DATUM, huberLines, huberPositions, pos } from './fixtures';
 
@@ -28,8 +28,15 @@ describe('validateInvoice', () => {
     // Huber: RE-2026-004 storniert → M365 schließt wieder an 2025 an bzw. ist wieder "neu"
     const lines = huberLines.map((l) => (l.rechnungsnummer === 'RE-2026-004' ? { ...l, status: 'Storniert' as const } : l));
     const proposal = proposeInvoice(huberPositions, lines, HUBER_DATUM);
-    expect(proposal.positions.filter((p) => p.position.id === 1)[0].status).toBe('neu');
-    expect(proposal.positions.filter((p) => p.position.id === 3)[0].status).toBe('neu');
+    expect(proposal.filter((p) => p.position.id === 1)[0].status).toBe('neu');
+    expect(proposal.filter((p) => p.position.id === 3)[0].status).toBe('neu');
+  });
+
+  it('Storno einer älteren Rechnung: deren Zeitraum ist trotz späterer Rechnung wieder verrechenbar', () => {
+    const lines = [billed(1, '2025-01-01', '2025-12-31', 'Storniert', 'RE-1'), billed(1, '2026-01-01', '2026-12-31', 'Erstellt', 'RE-2')];
+    expect(validateInvoice({ ...base, billedLines: lines, lines: [line('2025-01-01', '2025-12-31')] })).toEqual([]);
+    // eine echte Überschneidung mit RE-2 bleibt gesperrt
+    expect(hasErrors(validateInvoice({ ...base, billedLines: lines, lines: [line('2025-06-01', '2026-02-28')] }))).toBe(true);
   });
 
   it('erste Verrechnung: Zeitraum frei wählbar, keine Untergrenze und keine Lücken-Warnung', () => {
@@ -72,13 +79,20 @@ describe('validateInvoice', () => {
     expect(hasErrors(validateInvoice({ ...base, lines }))).toBe(true);
   });
 
+  it('einmalige Position: Bezeichnung und Betrag sind Pflicht', () => {
+    const e = { key: 'x', positionId: null, title: 'Einrichtung', von: null, bis: null };
+    expect(hasErrors(validateInvoice({ ...base, lines: [{ ...e, betragCent: null }] }))).toBe(true);
+    expect(hasErrors(validateInvoice({ ...base, lines: [{ ...e, title: ' ', betragCent: 5000 }] }))).toBe(true);
+    expect(validateInvoice({ ...base, lines: [{ ...e, betragCent: 5000 }] })).toEqual([]);
+  });
+
   it('einmalige Positionen ohne Zeitraum sind erlaubt', () => {
     expect(validateInvoice({ ...base, lines: [{ key: 'x', positionId: null, title: 'Einrichtung', von: null, bis: null }] })).toEqual([]);
   });
 
   it('der vollständige Huber-Vorschlag besteht die Prüfung', () => {
     const proposal = proposeInvoice(huberPositions, huberLines, HUBER_DATUM);
-    const lines = proposal.segments.map((s, i) => ({ key: String(i), positionId: s.positionId, title: s.title, von: s.von, bis: s.bis }));
+    const lines = faelligeSegmente(proposal).map((s, i) => ({ key: String(i), positionId: s.positionId, title: s.title, von: s.von, bis: s.bis }));
     expect(validateInvoice({ invoiceNumber: 'RE-2027-001', existingInvoiceNumbers: ['RE-2026-004'], lines, positions: huberPositions, billedLines: huberLines })).toEqual([]);
   });
 });

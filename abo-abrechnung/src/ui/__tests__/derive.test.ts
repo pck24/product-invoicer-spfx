@@ -1,6 +1,6 @@
 import { billed, huberLines, huberPositions, pos } from '../../billing/__tests__/fixtures';
 import { IKunde, IPositionItem } from '../../data/mapping';
-import { kpis, naechsterZeitraum, preisText, previewText, summarizeCustomer } from '../derive';
+import { kpis, preisText, previewText, summarizeAll, summarizeCustomer } from '../derive';
 
 const huber: IKunde = { id: 1, name: 'Bäckerei Huber GmbH', kundennummer: 'K-1001', adresse: '', aktiv: true };
 const huberPos: IPositionItem[] = huberPositions.map((p) => ({ ...p, kundeId: 1 }));
@@ -35,15 +35,13 @@ describe('Kundenübersicht', () => {
     expect(kpis([s])).toEqual({ naechsterTermin: '2027-01-01', offen: 1, gesamt: 1, vorschlagNettoCent: 75000 });
   });
 
-  it('Nächster Zeitraum je Position', () => {
-    const s = summarizeCustomer(huber, huberPos, [], huberLines, '2027-01-08');
-    expect(s.proposals.map(naechsterZeitraum).map((x) => x.text)).toEqual([
-      '01.01.2027 – 31.12.2027',
-      '15.03.2027 – 14.03.2028',
-      'bei erster Rechnung festlegen',
-      'nicht fällig, ab 01.09.2028',
-      'entfällt'
-    ]);
+  it('summarizeAll gruppiert je Kunde und liefert dasselbe wie die Einzelberechnung', () => {
+    const anderer: IKunde = { ...huber, id: 2, name: 'Andere', kundennummer: 'K-1002' };
+    const p2 = [{ ...pos({ id: 20 }), kundeId: 2 }];
+    const l2 = [billed(20, '2026-01-01', '2026-12-31')];
+    const all = summarizeAll([huber, anderer], huberPos.concat(p2), [], huberLines.concat(l2), '2027-01-08');
+    expect(all[0]).toEqual(summarizeCustomer(huber, huberPos, [], huberLines, '2027-01-08'));
+    expect(all[1]).toEqual(summarizeCustomer(anderer, p2, [], l2, '2027-01-08'));
   });
 });
 

@@ -15,14 +15,15 @@ import {
   makeStyles,
   mergeClasses
 } from '@fluentui/react-components';
-import { formatDate, todayIso } from '../../billing/dates';
+import { formatDate } from '../../billing/dates';
 import { formatEuro } from '../../billing/money';
 import { useData } from '../DataContext';
-import { ICustomerSummary, kpis, summarizeCustomer } from '../derive';
+import { kpis } from '../derive';
+import { rowClick } from '../rowClick';
 import { KpiCard } from '../components/KpiCard';
 import { KundeDrawer } from '../components/KundeDrawer';
-import { StatusBadge } from '../components/StatusBadge';
 import { useShared } from '../styles';
+import { useSort } from '../useSort';
 
 const useStyles = makeStyles({
   search: { width: '260px', maxWidth: '100%' },
@@ -40,40 +41,31 @@ export interface ICustomerListProps {
   rechnungen: React.ReactNode;
 }
 
-export function useSummaries(): ICustomerSummary[] {
-  const { data } = useData();
-  return React.useMemo(() => {
-    if (!data) return [];
-    const today = todayIso();
-    return data.kunden.map((k) => {
-      const pos = data.positionen.filter((p) => p.kundeId === k.id);
-      const ids = pos.map((p) => p.id);
-      return summarizeCustomer(
-        k,
-        pos,
-        data.rechnungen.filter((r) => r.kundeId === k.id),
-        data.billedLines.filter((l) => l.positionId !== null && ids.indexOf(l.positionId) >= 0),
-        today
-      );
-    });
-  }, [data]);
-}
-
 export function CustomerList({ tab, onTab, onOpen, rechnungen }: ICustomerListProps): React.ReactElement {
   const s = useStyles();
   const shared = useShared();
-  const summaries = useSummaries();
+  const { summaries } = useData();
   const [search, setSearch] = React.useState('');
   const [filter, setFilter] = React.useState<Filter>('alle');
   const [drawer, setDrawer] = React.useState(false);
 
   const k = kpis(summaries);
   const q = search.trim().toLowerCase();
-  const rows = summaries.filter(
-    (x) =>
-      (!q || x.kunde.name.toLowerCase().indexOf(q) >= 0 || x.kunde.kundennummer.toLowerCase().indexOf(q) >= 0) &&
-      (filter === 'alle' || (filter === 'faellig') === x.offen)
+  const filtered = React.useMemo(
+    () =>
+      summaries.filter(
+        (x) =>
+          (!q || x.kunde.name.toLowerCase().indexOf(q) >= 0 || x.kunde.kundennummer.toLowerCase().indexOf(q) >= 0) &&
+          (filter === 'alle' || (filter === 'faellig') === x.offen)
+      ),
+    [summaries, q, filter]
   );
+  const { sorted: rows, header } = useSort(filtered, {
+    nummer: (x) => x.kunde.kundennummer,
+    name: (x) => x.kunde.name,
+    positionen: (x) => x.aktivePositionen,
+    letzte: (x) => (x.letzteRechnung ? x.letzteRechnung.rechnungsdatum : null)
+  });
 
   return (
     <>
@@ -137,27 +129,26 @@ export function CustomerList({ tab, onTab, onOpen, rechnungen }: ICustomerListPr
               </div>
             </div>
             <div className={shared.tableWrap}>
-              <Table className={shared.table} aria-label="Kunden">
+              <Table className={shared.table} aria-label="Kunden" sortable>
                 <TableHeader>
                   <TableRow>
-                    <TableHeaderCell>Kd.-Nr.</TableHeaderCell>
-                    <TableHeaderCell>Name</TableHeaderCell>
-                    <TableHeaderCell>Aktive Positionen</TableHeaderCell>
-                    <TableHeaderCell>Letzte Rechnung</TableHeaderCell>
-                    <TableHeaderCell>Status</TableHeaderCell>
+                    <TableHeaderCell {...header('nummer')}>Kd.-Nr.</TableHeaderCell>
+                    <TableHeaderCell {...header('name')}>Name</TableHeaderCell>
+                    <TableHeaderCell {...header('positionen')}>Aktive Positionen</TableHeaderCell>
+                    <TableHeaderCell {...header('letzte')}>Letzte Rechnung</TableHeaderCell>
                     <TableHeaderCell aria-label="Aktion" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className={shared.muted}>
+                      <TableCell colSpan={5} className={shared.muted}>
                         {summaries.length === 0 ? 'Noch keine Kunden angelegt.' : 'Keine Kunden gefunden.'}
                       </TableCell>
                     </TableRow>
                   )}
                   {rows.map((x) => (
-                    <TableRow key={x.kunde.id} className={shared.clickableRow} onClick={() => onOpen(x.kunde.id)}>
+                    <TableRow key={x.kunde.id} className={shared.clickableRow} onClick={rowClick(() => onOpen(x.kunde.id))}>
                       <TableCell className={shared.num} style={{ textAlign: 'left' }}>
                         {x.kunde.kundennummer}
                       </TableCell>
@@ -169,18 +160,8 @@ export function CustomerList({ tab, onTab, onOpen, rechnungen }: ICustomerListPr
                       <TableCell>
                         {x.letzteRechnung ? `${x.letzteRechnung.nummer} · ${formatDate(x.letzteRechnung.rechnungsdatum)}` : <span className={shared.muted}>–</span>}
                       </TableCell>
-                      <TableCell>
-                        <StatusBadge color={x.status.color} text={x.status.text} />
-                      </TableCell>
                       <TableCell style={{ textAlign: 'right' }}>
-                        <Link
-                          as="button"
-                          className={shared.strong}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOpen(x.kunde.id);
-                          }}
-                        >
+                        <Link as="button" className={shared.strong} onClick={() => onOpen(x.kunde.id)}>
                           Öffnen
                         </Link>
                       </TableCell>

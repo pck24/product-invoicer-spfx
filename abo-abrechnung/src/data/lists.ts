@@ -73,7 +73,9 @@ export const LISTS: IListDef[] = [
       { name: 'Rechnungsdatum', displayName: 'Rechnungsdatum', type: 'DateTime' },
       { name: 'Vorgaenger', displayName: 'Vorgänger', type: 'Lookup', lookupList: LIST.Rechnungen },
       { name: 'Status', displayName: 'Status', type: 'Choice', choices: ['Entwurf', 'Erstellt', 'Storniert'], defaultValue: 'Entwurf' },
-      { name: 'SummeNettoCent', displayName: 'Summe netto (Cent)', type: 'Number', decimals: 0 },
+      { name: 'SummeNetto', displayName: 'Summe netto', type: 'Currency' },
+      // USt-Satz zum Zeitpunkt der Erstellung, damit spätere Änderungen alte Rechnungen nicht verändern
+      { name: 'UstSatz', displayName: 'USt-Satz (%)', type: 'Number', decimals: 2 },
       { name: 'PdfLink', displayName: 'PDF', type: 'URL' }
     ]
   },
@@ -88,16 +90,36 @@ export const LISTS: IListDef[] = [
       { name: 'Bis', displayName: 'Bis', type: 'DateTime' },
       { name: 'Monate', displayName: 'Monate', type: 'Number', decimals: 2 },
       { name: 'Menge', displayName: 'Menge', type: 'Number' },
-      { name: 'EinzelpreisCent', displayName: 'Jahrespreis je Stück (Cent)', type: 'Number', decimals: 0 },
-      { name: 'BetragCent', displayName: 'Betrag (Cent)', type: 'Number', decimals: 0 },
+      { name: 'Jahrespreis', displayName: '12-Monatspreis', type: 'Currency' },
+      { name: 'Betrag', displayName: 'Betrag', type: 'Currency' },
       { name: 'Art', displayName: 'Art', type: 'Choice', choices: ['Folgezeitraum', 'Anteilig', 'Nachverrechnung', 'Einmalig'] }
     ]
   }
 ];
 
-function esc(s: string): string {
+/**
+ * Frühere Cent-Spalten (Ganzzahl). Bei der Einrichtung werden ihre Werte in die
+ * Euro-Spalten übernommen und die alten Spalten danach gelöscht.
+ */
+export interface ICentMigration {
+  list: ListTitle;
+  /** alte Spalte in Cent */
+  from: string;
+  /** neue Spalte in Euro */
+  to: string;
+}
+
+export const CENT_MIGRATIONS: ICentMigration[] = [
+  { list: LIST.Rechnungen, from: 'SummeNettoCent', to: 'SummeNetto' },
+  { list: LIST.Rechnungspositionen, from: 'EinzelpreisCent', to: 'Jahrespreis' },
+  { list: LIST.Rechnungspositionen, from: 'BetragCent', to: 'Betrag' }
+];
+
+/** Text für XML-Attribute und -Inhalte (Feldschema, Word-Dokument). */
+export function escapeXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+const esc = escapeXml;
 
 /** CAML-Feldschema für createFieldAsXml. lookupListId ist bei Lookup-Feldern Pflicht. */
 export function fieldSchemaXml(f: IFieldDef, lookupListId?: string): string {
@@ -145,6 +167,8 @@ export interface IProvisioningPlan {
   createLists: ListTitle[];
   /** fehlende Felder je Liste (auch für neu anzulegende Listen) */
   createFields: { list: ListTitle; field: IFieldDef }[];
+  /** alte Cent-Spalten, deren Werte in Euro-Spalten übernommen werden */
+  migrations: ICentMigration[];
 }
 
 /**
@@ -152,7 +176,7 @@ export interface IProvisioningPlan {
  * fehlt der Eintrag, existiert die Liste nicht.
  */
 export function planProvisioning(existing: { [title: string]: string[] | undefined }): IProvisioningPlan {
-  const plan: IProvisioningPlan = { createLists: [], createFields: [] };
+  const plan: IProvisioningPlan = { createLists: [], createFields: [], migrations: [] };
   for (const def of LISTS) {
     const fields = existing[def.title];
     if (!fields) plan.createLists.push(def.title);
@@ -160,9 +184,14 @@ export function planProvisioning(existing: { [title: string]: string[] | undefin
       if (!fields || fields.indexOf(f.name) < 0) plan.createFields.push({ list: def.title, field: f });
     }
   }
+  // solange eine alte Cent-Spalte existiert, ist die Übernahme offen (wird erst nach Erfolg gelöscht)
+  plan.migrations = CENT_MIGRATIONS.filter((m) => {
+    const fields = existing[m.list];
+    return !!fields && fields.indexOf(m.from) >= 0;
+  });
   return plan;
 }
 
 export function isComplete(plan: IProvisioningPlan): boolean {
-  return plan.createLists.length === 0 && plan.createFields.length === 0;
+  return plan.createLists.length === 0 && plan.createFields.length === 0 && plan.migrations.length === 0;
 }

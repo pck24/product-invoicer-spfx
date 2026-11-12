@@ -1,7 +1,8 @@
 /** Kalendertag im Format YYYY-MM-DD, ohne Uhrzeit. */
 export type ISODate = string;
 
-export type Art = 'Folgezeitraum' | 'Anteilig' | 'Nachverrechnung' | 'Einmalig';
+/** Art einer Rechnungsposition. ("Nachverrechnung" existiert nur noch als Auswahlwert der Liste.) */
+export type Art = 'Folgezeitraum' | 'Anteilig' | 'Einmalig';
 export type RechnungsStatus = 'Entwurf' | 'Erstellt' | 'Storniert';
 
 export interface IPosition {

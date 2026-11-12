@@ -24,6 +24,10 @@ export const useShared = makeStyles({
     gap: '8px'
   },
   h1: { margin: 0, fontSize: '22px', lineHeight: '28px', fontWeight: tokens.fontWeightSemibold },
+  /** Titelzeile im Kopf (Titel + Chip/Badge) */
+  titleRow: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
+  /** Textspalte im Kopf (Titelzeile + Unterzeile) */
+  headerText: { display: 'flex', flexDirection: 'column', gap: '6px' },
   h2: { margin: 0, fontSize: '16px', lineHeight: '22px', fontWeight: tokens.fontWeightSemibold },
   muted: { color: tokens.colorNeutralForeground3 },
   row: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' },

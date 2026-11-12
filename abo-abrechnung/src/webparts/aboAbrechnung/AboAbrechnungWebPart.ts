@@ -10,6 +10,7 @@ import { spfi, SPFx, SPFI } from '@pnp/sp';
 import '@pnp/sp/webs';
 import '@pnp/sp/files';
 import '@pnp/sp/folders';
+import { parseUstSatz } from '../../billing/money';
 import { Repository } from '../../data/repositories';
 import { App } from '../../ui/App';
 
@@ -20,6 +21,10 @@ export interface IAboAbrechnungWebPartProps {
   exportOrdner?: string;
   ausgabeformat?: 'pdf' | 'docx';
 }
+
+/** Standardwerte, wenn im Property Pane nichts eingetragen ist. */
+const STANDARD_VORLAGE = '/sites/JustElevate-Kunden/Freigegebene Dokumente/briefpapier.docx';
+const STANDARD_EXPORTORDNER = '/sites/JustElevate-Kunden/Freigegebene Dokumente';
 
 export default class AboAbrechnungWebPart extends BaseClientSideWebPart<IAboAbrechnungWebPartProps> {
   private _root: Root | undefined;
@@ -49,16 +54,22 @@ export default class AboAbrechnungWebPart extends BaseClientSideWebPart<IAboAbre
         sp: this._sp,
         repo: this._repo,
         settings: {
-          ustSatz: typeof p.ustSatz === 'number' ? p.ustSatz : Number(String(p.ustSatz).replace(',', '.')) || 20,
+          ustSatz: parseUstSatz(p.ustSatz),
           dateinamenMuster: p.dateinamenMuster || '{rechnungsnummer}_{kundennummer}_{kundenname}',
-          vorlageUrl: p.vorlageUrl,
-          exportOrdner: p.exportOrdner,
+          vorlageUrl: (p.vorlageUrl || '').trim() || STANDARD_VORLAGE,
+          exportOrdner: (p.exportOrdner || '').trim() || STANDARD_EXPORTORDNER,
           ausgabeformat: p.ausgabeformat === 'docx' ? 'docx' : 'pdf'
         },
         exportEnv: {
           sp: this._sp,
           getGraph: () => {
-            if (!this._graph) this._graph = this.context.msGraphClientFactory.getClient('3');
+            if (!this._graph) {
+              // Fehlschlag nicht cachen (z. B. vor der API-Freigabe), sonst bleibt er bis zum Neuladen bestehen
+              this._graph = this.context.msGraphClientFactory.getClient('3').catch((e) => {
+                this._graph = undefined;
+                throw e;
+              });
+            }
             return this._graph;
           },
           siteHost: new URL(web.absoluteUrl).hostname,
@@ -99,7 +110,6 @@ export default class AboAbrechnungWebPart extends BaseClientSideWebPart<IAboAbre
   }
 
   protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
-    const site = this.context.pageContext.web.serverRelativeUrl.replace(/\/$/, '');
     return {
       pages: [
         {
@@ -110,13 +120,13 @@ export default class AboAbrechnungWebPart extends BaseClientSideWebPart<IAboAbre
               groupFields: [
                 PropertyPaneTextField('vorlageUrl', {
                   label: 'Word-Vorlage (.docx)',
-                  description: 'Serverrelative URL, z. B. ' + site + '/Freigegebene Dokumente/Vorlagen/Rechnungsvorlage.docx',
+                  description: `Serverrelative URL. Leer = ${STANDARD_VORLAGE}`,
                   onGetErrorMessage: (v: string) => this._checkPath(v, 'datei'),
                   deferredValidationTime: 500
                 }),
                 PropertyPaneTextField('exportOrdner', {
                   label: 'Export-Ordner',
-                  description: 'Serverrelative URL eines Ordners in einer Dokumentbibliothek, z. B. ' + site + '/Freigegebene Dokumente/Rechnungen',
+                  description: `Serverrelative URL eines Ordners in einer Dokumentbibliothek. Leer = ${STANDARD_EXPORTORDNER}`,
                   onGetErrorMessage: (v: string) => this._checkPath(v, 'ordner'),
                   deferredValidationTime: 500
                 }),
@@ -142,7 +152,7 @@ export default class AboAbrechnungWebPart extends BaseClientSideWebPart<IAboAbre
               groupFields: [
                 PropertyPaneTextField('ustSatz', {
                   label: 'USt-Satz (%)',
-                  onGetErrorMessage: (v: string) => (Number(String(v).replace(',', '.')) >= 0 ? '' : 'Zahl angeben, z. B. 20')
+                  onGetErrorMessage: (v: string) => (parseUstSatz(v, -1) >= 0 ? '' : 'Zahl ab 0 angeben, z. B. 20')
                 })
               ]
             }

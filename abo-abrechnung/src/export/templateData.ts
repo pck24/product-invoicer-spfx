@@ -1,9 +1,10 @@
 /** Daten für die Word-Vorlage (rein, ohne SharePoint). Alle Werte fertig formatiert. */
-import { addDaysIso, addMonthsIso, formatDate, maxIso, minIso } from '../billing/dates';
-import { formatAmount, formatEuro, formatMonate, totals } from '../billing/money';
-import { isActiveLine } from '../billing/proposal';
+import { addDaysIso, addMonthsIso, formatDate } from '../billing/dates';
+import { formatEuro, formatMonate, formatZahl, totals } from '../billing/money';
 import { IBilledLine, ISODate } from '../billing/types';
+import { escapeXml } from '../data/lists';
 import { IKunde, IPositionItem, IRechnung, IRechnungsposition } from '../data/mapping';
+import { timelineRange, timelineRows } from './timelineModel';
 
 export type ExportVariante = 'mitKosten' | 'ohneKosten';
 
@@ -69,13 +70,13 @@ export function buildTemplateData(input: IExportInput, variante: ExportVariante)
       von: formatDate(l.von),
       bis: formatDate(l.bis),
       monate: l.positionId !== null ? formatMonate(l.monateX100) : '',
-      menge: String(l.menge).replace('.', ','),
+      menge: formatZahl(l.menge),
       einzelpreis: l.positionId !== null ? formatEuro(l.einzelpreisCent) : '',
       betrag: formatEuro(l.betragCent),
       art: l.art
     })),
     summeNetto: formatEuro(t.nettoCent),
-    ustSatz: formatAmount(Math.round(input.ustSatz * 100)).replace(/,00$/, ''),
+    ustSatz: formatZahl(input.ustSatz),
     ust: formatEuro(t.ustCent),
     summeBrutto: formatEuro(t.bruttoCent),
     zeitleiste: timelineXml(input)
@@ -84,10 +85,11 @@ export function buildTemplateData(input: IExportInput, variante: ExportVariante)
 
 /** Dateiname aus Muster; ungültige Zeichen werden durch "-" ersetzt. */
 export function fileName(pattern: string, data: { rechnungsnummer: string; kundennummer: string; kundenname: string }, suffix?: string): string {
+  // Ersetzung per Funktion: "$&", "$'" usw. in Kundendaten dürfen nicht als Ersetzungsmuster wirken
   const base = (pattern || '{rechnungsnummer}_{kundennummer}_{kundenname}')
-    .replace(/\{rechnungsnummer\}/g, data.rechnungsnummer)
-    .replace(/\{kundennummer\}/g, data.kundennummer)
-    .replace(/\{kundenname\}/g, data.kundenname);
+    .replace(/\{rechnungsnummer\}/g, () => data.rechnungsnummer)
+    .replace(/\{kundennummer\}/g, () => data.kundennummer)
+    .replace(/\{kundenname\}/g, () => data.kundenname);
   const clean = `${base}${suffix || ''}`
     .replace(/["*:<>?/\\|#%&{}~]/g, '-')
     .replace(/\s+/g, ' ')
@@ -106,9 +108,7 @@ const COLOR_OTHER = 'C9DCF2';
 const COLOR_GRID = 'D9D9D9';
 const COLOR_MARKER = 'C4262E';
 
-function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+const esc = escapeXml;
 
 interface ICell {
   start: ISODate;
@@ -138,29 +138,10 @@ function cell(width: number, content: string, opts: { fill?: string; span?: numb
 export function timelineXml(input: IExportInput): string {
   const { rechnung, lines, positionen, billedLines } = input;
   const datum = rechnung.rechnungsdatum;
-  const positionIds = lines.map((l) => l.positionId).filter((id, i, a): id is number => id !== null && a.indexOf(id) === i);
-  if (positionIds.length === 0 || !datum) return para(run('Keine Zeiträume vorhanden.'));
+  const rows = timelineRows(rechnung, lines, positionen, billedLines);
+  if (rows.length === 0 || !datum) return para(run('Keine Zeiträume vorhanden.'));
 
-  const rows = positionIds.map((pid) => {
-    const pos = positionen.filter((p) => p.id === pid)[0];
-    const bars = billedLines
-      .filter((b) => b.positionId === pid && !!b.von && !!b.bis && (isActiveLine(b) || b.rechnungId === rechnung.id))
-      .map((b) => ({ von: b.von as ISODate, bis: b.bis as ISODate, current: b.rechnungId === rechnung.id }));
-    const title = pos ? pos.title : lines.filter((l) => l.positionId === pid)[0].title;
-    return { title, ende: pos ? pos.ende : null, bars };
-  });
-
-  // Bereich: ganze Kalenderjahre, höchstens 5, endend mit dem spätesten Datum
-  let min: ISODate = datum;
-  let max: ISODate = datum;
-  for (const r of rows) {
-    for (const b of r.bars) {
-      min = minIso(min, b.von);
-      max = maxIso(max, b.bis);
-    }
-  }
-  const endYear = Number(max.substring(0, 4));
-  const startYear = Math.max(Number(min.substring(0, 4)), endYear - 4);
+  const { startYear, endYear } = timelineRange(rows, datum);
   const months = (endYear - startYear + 1) * 12;
   const step = months <= 36 ? 1 : 3;
   const cells: ICell[] = [];

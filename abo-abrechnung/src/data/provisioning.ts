@@ -2,7 +2,10 @@ import { SPFI } from '@pnp/sp';
 import '@pnp/sp/webs';
 import '@pnp/sp/lists';
 import { AddFieldOptions } from '@pnp/sp/fields';
-import { IListDef, IProvisioningPlan, LISTS, ListTitle, fieldSchemaXml, planProvisioning } from './lists';
+import '@pnp/sp/items';
+import '@pnp/sp/fields';
+import { ICentMigration, IListDef, IProvisioningPlan, LISTS, ListTitle, fieldSchemaXml, planProvisioning } from './lists';
+import { readAll } from './repositories';
 
 const FIELD_OPTIONS: AddFieldOptions = AddFieldOptions.AddFieldInternalNameHint | AddFieldOptions.AddFieldToDefaultView;
 
@@ -10,12 +13,13 @@ const FIELD_OPTIONS: AddFieldOptions = AddFieldOptions.AddFieldInternalNameHint 
 export async function checkProvisioning(sp: SPFI): Promise<IProvisioningPlan> {
   const titles = LISTS.map((l) => l.title);
   const filter = titles.map((t) => `Title eq '${t}'`).join(' or ');
-  const lists: { Title: string }[] = await sp.web.lists.filter(filter).select('Title')();
+  // Listen samt Feldnamen in einer Abfrage (läuft bei jedem Start)
+  const lists: { Title: string; Fields: { InternalName: string }[] }[] = await sp.web.lists
+    .filter(filter)
+    .select('Title', 'Fields/InternalName')
+    .expand('Fields')();
   const existing: { [title: string]: string[] | undefined } = {};
-  for (const l of lists) {
-    const fields: { InternalName: string }[] = await sp.web.lists.getByTitle(l.Title).fields.select('InternalName')();
-    existing[l.Title] = fields.map((f) => f.InternalName);
-  }
+  for (const l of lists) existing[l.Title] = (l.Fields || []).map((f) => f.InternalName);
   return planProvisioning(existing);
 }
 
@@ -47,7 +51,27 @@ export async function provision(sp: SPFI, onProgress?: (message: string) => void
       Options: FIELD_OPTIONS
     });
   }
+
+  for (const m of plan.migrations) {
+    report(`${m.list}: ${m.from} in Euro übernehmen …`);
+    await migrateCent(sp, m);
+  }
   report('Fertig.');
+}
+
+/**
+ * Übernimmt Cent-Werte in die Euro-Spalte (nur wo diese leer ist, daher
+ * wiederholbar) und löscht danach die alte Spalte.
+ */
+async function migrateCent(sp: SPFI, m: ICentMigration): Promise<void> {
+  const list = sp.web.lists.getByTitle(m.list);
+  const items = await readAll(list, ['Id', m.from, m.to]);
+  const todo = items.filter((i) => typeof i[m.from] === 'number' && (i[m.to] === null || i[m.to] === undefined));
+  // in kleinen Gruppen, um SharePoint nicht zu drosseln
+  for (let k = 0; k < todo.length; k += 10) {
+    await Promise.all(todo.slice(k, k + 10).map((i) => list.items.getById(i.Id).update({ [m.to]: i[m.from] / 100 })));
+  }
+  await list.fields.getByInternalNameOrTitle(m.from).delete();
 }
 
 /** Nur für neu angelegte Listen: Anzeigename und ggf. Eindeutigkeit der Title-Spalte. */

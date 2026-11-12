@@ -36,22 +36,17 @@ export function InvoiceActions({ rechnung, onEditDraft, onShow, onDeleted, label
     }
   };
 
-  // Klicks (auch aus Menü- und Dialog-Portalen) nicht an eine klickbare Tabellenzeile weiterreichen
+  // Klickbare Tabellenzeilen ignorieren Klicks auf Menü und Dialog selbst (siehe rowClick)
   return (
-    <span onClick={(e) => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
       {exp.busy && <Spinner size="tiny" label={exp.busy} />}
       <Menu positioning="below-end">
         <MenuTrigger disableButtonEnhancement>
-          <Button
-            appearance={label ? 'secondary' : 'subtle'}
-            icon={<MoreHorizontal20Regular />}
-            aria-label={`Aktionen für ${rechnung.nummer}`}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <Button appearance={label ? 'secondary' : 'subtle'} icon={<MoreHorizontal20Regular />} aria-label={`Aktionen für ${rechnung.nummer}`}>
             {label}
           </Button>
         </MenuTrigger>
-        <MenuPopover onClick={(e) => e.stopPropagation()}>
+        <MenuPopover>
           <MenuList>
             {onShow && <MenuItem onClick={() => onShow(rechnung)}>Anzeigen</MenuItem>}
             {rechnung.pdfUrl && <MenuItem onClick={() => window.open(rechnung.pdfUrl as string, '_blank')}>Export öffnen</MenuItem>}

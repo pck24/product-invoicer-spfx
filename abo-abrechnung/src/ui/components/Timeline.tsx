@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { Tooltip, makeStyles, mergeClasses, shorthands, tokens } from '@fluentui/react-components';
-import { addDaysIso, addMonthsIso, diffDays, formatDate, maxIso, minIso } from '../../billing/dates';
+import { addDaysIso, diffDays } from '../../billing/dates';
 import { ISODate } from '../../billing/types';
+import { timelineRange } from '../../export/timelineModel';
 import { useShared } from '../styles';
 
 const useStyles = makeStyles({
@@ -10,21 +11,21 @@ const useStyles = makeStyles({
   swatch: { width: '18px', height: '10px', borderRadius: '2px', boxSizing: 'border-box' },
   body: { padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: '10px', '@media (max-width: 640px)': { minWidth: '600px' } },
   row: { display: 'flex', gap: '16px', alignItems: 'center' },
-  label: { width: '180px', flex: 'none', fontWeight: tokens.fontWeightSemibold, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  // Bezeichnungen bekommen bis zu 45 % der Breite, die Balken rücken zusammen
+  label: { flex: '0 0 45%', maxWidth: '600px', minWidth: '160px', fontWeight: tokens.fontWeightSemibold, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   years: { flex: 1, position: 'relative', height: '18px', color: tokens.colorNeutralForeground3, fontSize: '12px' },
   year: { position: 'absolute', top: 0, paddingLeft: '6px', ...shorthands.borderLeft('1px', 'solid', tokens.colorNeutralStroke2) },
   track: { flex: 1, position: 'relative', height: '22px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: '3px' },
   seg: { position: 'absolute', top: '3px', bottom: '3px', borderRadius: '3px', boxSizing: 'border-box', minWidth: '2px' },
   current: { backgroundColor: tokens.colorBrandBackground },
   other: { backgroundColor: tokens.colorBrandBackground2, ...shorthands.border('1px', 'solid', tokens.colorBrandStroke2) },
-  proposal: { backgroundColor: tokens.colorPaletteYellowBackground2, ...shorthands.border('1px', 'dashed', tokens.colorPaletteMarigoldBorderActive) },
   endedRow: { color: tokens.colorNeutralForeground4 },
   marker: { position: 'absolute', width: '2px' },
   date: { top: '-4px', bottom: '-4px', backgroundColor: tokens.colorPaletteRedBackground3 },
   cancel: { top: 0, bottom: 0, backgroundColor: tokens.colorNeutralForeground3 }
 });
 
-export type BarKind = 'current' | 'other' | 'proposal';
+export type BarKind = 'current' | 'other';
 
 export interface ITimelineBar {
   key: string;
@@ -56,24 +57,14 @@ export function Timeline({ rows, markerDate, markerLabel, labels }: ITimelinePro
   const s = useStyles();
   const shared = useShared();
 
-  // Zeitraum: bis zu 5 Jahre, endend mit dem spätesten Datum
-  let min: ISODate = markerDate;
-  let max: ISODate = addMonthsIso(markerDate, 12);
-  for (const r of rows) {
-    for (const b of r.bars) {
-      min = minIso(min, b.von);
-      max = maxIso(max, b.bis);
-    }
-  }
-  const endYear = Number(max.substring(0, 4));
-  const startYear = Math.max(Number(min.substring(0, 4)), endYear - 4);
+  const { startYear, endYear } = timelineRange(rows, markerDate);
   const rangeStart = `${startYear}-01-01`;
   const rangeEnd = `${endYear + 1}-01-01`;
   const total = diffDays(rangeStart, rangeEnd);
   const pct = (d: ISODate): number => Math.max(0, Math.min(100, (diffDays(rangeStart, d) / total) * 100));
   const years: number[] = [];
   for (let y = startYear; y <= endYear; y++) years.push(y);
-  const kinds = (['current', 'other', 'proposal'] as BarKind[]).filter((k) => labels[k] && rows.some((r) => r.bars.some((b) => b.kind === k)));
+  const kinds = (['current', 'other'] as BarKind[]).filter((k) => labels[k] && rows.some((r) => r.bars.some((b) => b.kind === k)));
   const hasCancel = rows.some((r) => !!r.ende);
 
   return (
@@ -149,9 +140,4 @@ export function Timeline({ rows, markerDate, markerLabel, labels }: ITimelinePro
       </div>
     </section>
   );
-}
-
-/** Kurztext für Tooltips: "RE-1 · 01.01.2027 – 31.12.2027 · 24,00 €" */
-export function barTooltip(prefix: string, von: ISODate, bis: ISODate, betrag: string): string {
-  return `${prefix ? `${prefix} · ` : ''}${formatDate(von)} – ${formatDate(bis)} · ${betrag}`;
 }

@@ -25,6 +25,8 @@
     "officeFabricIconFontName": "Money",
     "properties": {
       "ustSatz": 20,
+      "vorlageUrl": "/sites/JustElevate-Kunden/Freigegebene Dokumente/briefpapier.docx",
+      "exportOrdner": "/sites/JustElevate-Kunden/Freigegebene Dokumente",
       "dateinamenMuster": "{rechnungsnummer}_{kundennummer}_{kundenname}"
     }
   }]

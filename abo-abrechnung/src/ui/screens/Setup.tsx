@@ -51,8 +51,8 @@ export function Setup({ plan, onDone }: ISetupProps): React.ReactElement {
         Listen einrichten
       </Text>
       <Text>
-        Für die Abo-Abrechnung fehlen in dieser Site Listen oder Spalten. Sie werden angelegt; bestehende Listen, Spalten und Daten
-        bleiben unverändert.
+        Für die Abo-Abrechnung fehlen in dieser Site Listen oder Spalten. Sie werden angelegt; bestehende Daten bleiben erhalten.
+        {plan.migrations.length > 0 && ' Beträge in den alten Cent-Spalten werden in die neuen Euro-Spalten übernommen, die Cent-Spalten danach entfernt.'}
       </Text>
       <ul className={styles.list}>
         {Object.keys(fieldsByList).map((list) => (

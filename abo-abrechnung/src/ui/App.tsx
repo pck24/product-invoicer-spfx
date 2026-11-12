@@ -77,7 +77,7 @@ function Screens(): React.ReactElement {
   }
   if (!data) return loading ? <LoadingSkeleton /> : <></>;
 
-  const kunde = route.name !== 'home' ? data.kunden.filter((k) => k.id === route.kundeId)[0] : undefined;
+  const kunde = route.name !== 'home' ? data.kundeById[route.kundeId] : undefined;
   const home = (): void => setRoute({ name: 'home', tab: 'kunden' });
   const editDraft = (r: IRechnung): void => {
     if (r.kundeId) setRoute({ name: 'rechnung', kundeId: r.kundeId, rechnungId: r.id });
@@ -85,7 +85,7 @@ function Screens(): React.ReactElement {
   const show = (r: IRechnung): void => {
     if (r.kundeId) setRoute({ name: 'anzeige', kundeId: r.kundeId, rechnungId: r.id });
   };
-  const anzeige = route.name === 'anzeige' ? data.rechnungen.filter((r) => r.id === route.rechnungId)[0] : undefined;
+  const anzeige = route.name === 'anzeige' ? data.rechnungById[route.rechnungId] : undefined;
 
   return (
     <>
