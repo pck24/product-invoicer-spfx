@@ -2,11 +2,12 @@ import * as React from 'react';
 import { Link, Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow, mergeClasses } from '@fluentui/react-components';
 import { formatDate } from '../../billing/dates';
 import { formatEuro } from '../../billing/money';
-import { IRechnung } from '../../data/mapping';
+import { IKunde, IRechnung } from '../../data/mapping';
 import { useData } from '../DataContext';
 import { anzahlText, RECHNUNG_STATUS } from '../derive';
 import { rowClick } from '../rowClick';
 import { useShared } from '../styles';
+import { useSort } from '../useSort';
 import { InvoiceActions } from './InvoiceActions';
 import { StatusBadge } from './StatusBadge';
 
@@ -24,17 +25,32 @@ export function RechnungenTable({ rechnungen, onOpenKunde, onShow, onEditDraft, 
   const shared = useShared();
   const { data } = useData();
   const cols = onOpenKunde ? 7 : 6;
+  const kundeOf = (r: IRechnung): IKunde | undefined => (data && r.kundeId !== null ? data.kundeById[r.kundeId] : undefined);
+  const anzahl = (r: IRechnung): number => (data && data.zeilenJeRechnung[r.id] ? data.zeilenJeRechnung[r.id].length : 0);
+  const { sorted, header } = useSort(rechnungen, {
+    nummer: (r) => r.nummer,
+    datum: (r) => r.rechnungsdatum,
+    kunde: (r) => {
+      const k = kundeOf(r);
+      return k ? k.name : null;
+    },
+    positionen: anzahl,
+    netto: (r) => r.summeNettoCent,
+    status: (r) => r.status
+  });
   return (
     <div className={shared.tableWrap}>
-      <Table className={shared.table} aria-label="Rechnungen">
+      <Table className={shared.table} aria-label="Rechnungen" sortable>
         <TableHeader>
           <TableRow>
-            <TableHeaderCell>Nr.</TableHeaderCell>
-            <TableHeaderCell>Datum</TableHeaderCell>
-            {onOpenKunde && <TableHeaderCell>Kunde</TableHeaderCell>}
-            <TableHeaderCell>Positionen</TableHeaderCell>
-            <TableHeaderCell className={mergeClasses(shared.num, shared.numHead)}>Netto</TableHeaderCell>
-            <TableHeaderCell>Status</TableHeaderCell>
+            <TableHeaderCell {...header('nummer')}>Nr.</TableHeaderCell>
+            <TableHeaderCell {...header('datum')}>Datum</TableHeaderCell>
+            {onOpenKunde && <TableHeaderCell {...header('kunde')}>Kunde</TableHeaderCell>}
+            <TableHeaderCell {...header('positionen')}>Positionen</TableHeaderCell>
+            <TableHeaderCell {...header('netto')} className={mergeClasses(shared.num, shared.numHead)}>
+              Netto
+            </TableHeaderCell>
+            <TableHeaderCell {...header('status')}>Status</TableHeaderCell>
             <TableHeaderCell aria-label="Aktionen" style={{ width: '48px' }} />
           </TableRow>
         </TableHeader>
@@ -46,9 +62,9 @@ export function RechnungenTable({ rechnungen, onOpenKunde, onShow, onEditDraft, 
               </TableCell>
             </TableRow>
           )}
-          {rechnungen.map((r) => {
-            const kunde = data && r.kundeId !== null ? data.kundeById[r.kundeId] : undefined;
-            const n = data && data.zeilenJeRechnung[r.id] ? data.zeilenJeRechnung[r.id].length : 0;
+          {sorted.map((r) => {
+            const kunde = kundeOf(r);
+            const n = anzahl(r);
             return (
               <TableRow key={r.id} className={shared.clickableRow} onClick={rowClick(() => onShow(r))}>
                 <TableCell className={shared.strong}>

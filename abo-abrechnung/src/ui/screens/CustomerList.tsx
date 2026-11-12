@@ -23,6 +23,7 @@ import { rowClick } from '../rowClick';
 import { KpiCard } from '../components/KpiCard';
 import { KundeDrawer } from '../components/KundeDrawer';
 import { useShared } from '../styles';
+import { useSort } from '../useSort';
 
 const useStyles = makeStyles({
   search: { width: '260px', maxWidth: '100%' },
@@ -50,11 +51,21 @@ export function CustomerList({ tab, onTab, onOpen, rechnungen }: ICustomerListPr
 
   const k = kpis(summaries);
   const q = search.trim().toLowerCase();
-  const rows = summaries.filter(
-    (x) =>
-      (!q || x.kunde.name.toLowerCase().indexOf(q) >= 0 || x.kunde.kundennummer.toLowerCase().indexOf(q) >= 0) &&
-      (filter === 'alle' || (filter === 'faellig') === x.offen)
+  const filtered = React.useMemo(
+    () =>
+      summaries.filter(
+        (x) =>
+          (!q || x.kunde.name.toLowerCase().indexOf(q) >= 0 || x.kunde.kundennummer.toLowerCase().indexOf(q) >= 0) &&
+          (filter === 'alle' || (filter === 'faellig') === x.offen)
+      ),
+    [summaries, q, filter]
   );
+  const { sorted: rows, header } = useSort(filtered, {
+    nummer: (x) => x.kunde.kundennummer,
+    name: (x) => x.kunde.name,
+    positionen: (x) => x.aktivePositionen,
+    letzte: (x) => (x.letzteRechnung ? x.letzteRechnung.rechnungsdatum : null)
+  });
 
   return (
     <>
@@ -118,13 +129,13 @@ export function CustomerList({ tab, onTab, onOpen, rechnungen }: ICustomerListPr
               </div>
             </div>
             <div className={shared.tableWrap}>
-              <Table className={shared.table} aria-label="Kunden">
+              <Table className={shared.table} aria-label="Kunden" sortable>
                 <TableHeader>
                   <TableRow>
-                    <TableHeaderCell>Kd.-Nr.</TableHeaderCell>
-                    <TableHeaderCell>Name</TableHeaderCell>
-                    <TableHeaderCell>Aktive Positionen</TableHeaderCell>
-                    <TableHeaderCell>Letzte Rechnung</TableHeaderCell>
+                    <TableHeaderCell {...header('nummer')}>Kd.-Nr.</TableHeaderCell>
+                    <TableHeaderCell {...header('name')}>Name</TableHeaderCell>
+                    <TableHeaderCell {...header('positionen')}>Aktive Positionen</TableHeaderCell>
+                    <TableHeaderCell {...header('letzte')}>Letzte Rechnung</TableHeaderCell>
                     <TableHeaderCell aria-label="Aktion" />
                   </TableRow>
                 </TableHeader>

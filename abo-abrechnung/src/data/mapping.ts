@@ -46,8 +46,10 @@ export type SPItem = Record<string, any>;
 /**
  * Datumsfelder sind "DateOnly". SharePoint speichert sie als Mitternacht in der
  * Zeitzone der Site und liefert sie in UTC (z. B. 2026-12-31T23:00:00Z für den
- * 01.01.2027 in Wien). Geschrieben wird daher 12:00 UTC, gelesen wird auf den
- * nächstgelegenen Tag gerundet (+12 h, Datumsteil). Gilt für Zeitzonen bis ±11 h.
+ * 01.01.2027 in Wien) – je nach Spalte aber auch unverändert (12:00 UTC).
+ * Geschrieben wird 12:00 UTC; gelesen wird +11 h und davon der Datumsteil:
+ * 12:00 UTC und früher → derselbe Tag, ab 13:00 UTC (Mitternacht in UTC+1 … +11)
+ * → Folgetag. (+12 h würde 12:00 UTC auf den Folgetag schieben → Datum wandert.)
  */
 export function toSpDate(value: ISODate | null): string | null {
   return value ? `${value}T12:00:00Z` : null;
@@ -57,7 +59,7 @@ export function fromSpDate(value: string | null | undefined): ISODate | null {
   if (!value) return null;
   const ms = Date.parse(value);
   if (isNaN(ms)) return null;
-  return new Date(ms + 12 * 3600 * 1000).toISOString().substring(0, 10);
+  return new Date(ms + 11 * 3600 * 1000).toISOString().substring(0, 10);
 }
 
 export function toCent(euro: number | null | undefined): number {

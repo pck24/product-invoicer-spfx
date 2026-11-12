@@ -66,6 +66,8 @@ describe('Datumsfelder', () => {
     expect(fromSpDate('2027-01-01T05:00:00Z')).toBe('2027-01-01'); // UTC−5
     expect(fromSpDate('2027-01-01T11:00:00Z')).toBe('2027-01-01'); // UTC−11
     expect(fromSpDate('2026-12-31T13:00:00Z')).toBe('2027-01-01'); // UTC+11
+    expect(fromSpDate('2027-01-01T12:00:00Z')).toBe('2027-01-01'); // unverändert zurückgeliefert
+    expect(fromSpDate(toSpDate('2027-03-15'))).toBe('2027-03-15'); // Hin und zurück stabil
     expect(fromSpDate(null)).toBeNull();
   });
 });

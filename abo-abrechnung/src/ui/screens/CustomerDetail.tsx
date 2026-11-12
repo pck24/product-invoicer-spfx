@@ -30,6 +30,7 @@ import { PositionDrawer } from '../components/PositionDrawer';
 import { RechnungenTable } from '../components/RechnungenTable';
 import { StatusBadge } from '../components/StatusBadge';
 import { useShared } from '../styles';
+import { useSort } from '../useSort';
 
 const useStyles = makeStyles({
   badge: { marginLeft: '6px' }
@@ -53,11 +54,21 @@ export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft, onShow }
   const [positionDrawer, setPositionDrawer] = React.useState<{ open: boolean; position?: IPositionItem }>({ open: false });
   const [kuendigen, setKuendigen] = React.useState<IPositionItem | undefined>();
   const [confirm, setConfirm] = React.useState<IConfirmRequest | undefined>();
+  const today = todayIso();
+  const visible = React.useMemo(
+    () => (summary ? summary.proposals.filter((p) => showEnded || !isGekuendigt(p.position, today)) : []),
+    [summary, showEnded, today]
+  );
+  const { sorted: proposals, header } = useSort(visible, {
+    produkt: (p) => p.position.title,
+    menge: (p) => p.position.menge,
+    preis: (p) => p.position.jahrespreisCent,
+    laufzeit: (p) => p.position.laufzeitMonate,
+    verrechnet: (p) => p.verrechnetBis
+  });
 
   if (!summary || !data) return <p>Kunde nicht gefunden.</p>;
   const { kunde } = summary;
-  const today = todayIso();
-  const proposals = summary.proposals.filter((p) => showEnded || !isGekuendigt(p.position, today));
   const rechnungen = data.rechnungen.filter((r) => r.kundeId === kundeId).sort(neuesteZuerst);
 
   /** Speichert eine Aktion, lädt neu und meldet das Ergebnis. */
@@ -116,14 +127,18 @@ export function CustomerDetail({ kundeId, onFolgerechnung, onEditDraft, onShow }
           <Switch label="Gekündigte anzeigen" checked={showEnded} onChange={(_, d) => setShowEnded(d.checked)} />
         </div>
         <div className={shared.tableWrap}>
-          <Table className={shared.table} aria-label="Positionen">
+          <Table className={shared.table} aria-label="Positionen" sortable>
             <TableHeader>
               <TableRow>
-                <TableHeaderCell>Produkt</TableHeaderCell>
-                <TableHeaderCell className={mergeClasses(shared.num, shared.numHead)}>Menge</TableHeaderCell>
-                <TableHeaderCell className={mergeClasses(shared.num, shared.numHead)}>Jahrespreis</TableHeaderCell>
-                <TableHeaderCell>Laufzeit</TableHeaderCell>
-                <TableHeaderCell>Verrechnet bis</TableHeaderCell>
+                <TableHeaderCell {...header('produkt')}>Produkt</TableHeaderCell>
+                <TableHeaderCell {...header('menge')} className={mergeClasses(shared.num, shared.numHead)}>
+                  Menge
+                </TableHeaderCell>
+                <TableHeaderCell {...header('preis')} className={mergeClasses(shared.num, shared.numHead)}>
+                  Jahrespreis
+                </TableHeaderCell>
+                <TableHeaderCell {...header('laufzeit')}>Laufzeit</TableHeaderCell>
+                <TableHeaderCell {...header('verrechnet')}>Verrechnet bis</TableHeaderCell>
                 <TableHeaderCell aria-label="Aktionen" style={{ width: '48px' }} />
               </TableRow>
             </TableHeader>
