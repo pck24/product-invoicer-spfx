@@ -1,5 +1,13 @@
 import { LISTS, fieldSchemaXml, isComplete, planProvisioning } from '../lists';
-import { fromSpDate, positionFromItem, positionToItem, toBilledLines, toSpDate } from '../mapping';
+import {
+  fromSpDate,
+  positionFromItem,
+  positionToItem,
+  rechnungspositionFromItem,
+  rechnungspositionToItem,
+  toBilledLines,
+  toSpDate
+} from '../mapping';
 
 describe('Provisionierungsplan', () => {
   it('leere Site: alle 4 Listen mit allen Spalten', () => {
@@ -21,6 +29,27 @@ describe('Provisionierungsplan', () => {
     const plan = planProvisioning(existing);
     expect(plan.createLists).toEqual([]);
     expect(plan.createFields.map((f) => `${f.list}.${f.field.name}`)).toEqual(['AA_Rechnungen.PdfLink']);
+  });
+
+  it('alte Cent-Spalten: Euro-Spalten anlegen und Werte übernehmen, bis die Cent-Spalte entfernt ist', () => {
+    const existing: { [t: string]: string[] } = {};
+    for (const l of LISTS) existing[l.title] = l.fields.map((f) => f.name).filter((n) => ['SummeNetto', 'Jahrespreis', 'Betrag'].indexOf(n) < 0);
+    existing.AA_Rechnungen.push('SummeNettoCent');
+    existing.AA_Rechnungspositionen.push('EinzelpreisCent', 'BetragCent');
+    const plan = planProvisioning(existing);
+    expect(plan.createFields.map((f) => f.field.name)).toEqual(['SummeNetto', 'Jahrespreis', 'Betrag']);
+    expect(plan.migrations.map((m) => `${m.from}->${m.to}`)).toEqual(['SummeNettoCent->SummeNetto', 'EinzelpreisCent->Jahrespreis', 'BetragCent->Betrag']);
+    // Spalten schon angelegt, Übernahme aber noch offen → weiterhin unvollständig
+    existing.AA_Rechnungen.push('SummeNetto');
+    existing.AA_Rechnungspositionen.push('Jahrespreis', 'Betrag');
+    expect(isComplete(planProvisioning(existing))).toBe(false);
+  });
+
+  it('Rechnungsposition: Beträge in Euro gespeichert, intern in Cent', () => {
+    const line = { rechnungId: 1, positionId: 2, title: 'x', von: '2026-08-12', bis: '2027-08-13', monateX100: 1206, menge: 1, einzelpreisCent: 2491, betragCent: 2503, art: 'Folgezeitraum' as const };
+    const item = rechnungspositionToItem(line);
+    expect(item).toMatchObject({ Jahrespreis: 24.91, Betrag: 25.03 });
+    expect(rechnungspositionFromItem({ Id: 5, RechnungId: 1, PositionId: 2, ...item })).toMatchObject({ einzelpreisCent: 2491, betragCent: 2503 });
   });
 
   it('Lookup-Ziele werden vor ihrer Verwendung angelegt', () => {

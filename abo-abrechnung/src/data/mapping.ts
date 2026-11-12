@@ -68,8 +68,8 @@ export function toCent(euro: number | null | undefined): number {
 
 export const KUNDE_FIELDS = ['Id', 'Title', 'Kundennummer', 'Adresse', 'Aktiv'];
 export const POSITION_FIELDS = ['Id', 'Title', 'KundeId', 'Menge', 'Preis', 'LaufzeitMonate', 'Ende'];
-export const RECHNUNG_FIELDS = ['Id', 'Title', 'KundeId', 'Rechnungsdatum', 'VorgaengerId', 'Status', 'SummeNettoCent', 'UstSatz', 'PdfLink'];
-export const RECHNUNGSPOSITION_FIELDS = ['Id', 'Title', 'RechnungId', 'PositionId', 'Von', 'Bis', 'Monate', 'Menge', 'EinzelpreisCent', 'BetragCent', 'Art'];
+export const RECHNUNG_FIELDS = ['Id', 'Title', 'KundeId', 'Rechnungsdatum', 'VorgaengerId', 'Status', 'SummeNetto', 'UstSatz', 'PdfLink'];
+export const RECHNUNGSPOSITION_FIELDS = ['Id', 'Title', 'RechnungId', 'PositionId', 'Von', 'Bis', 'Monate', 'Menge', 'Jahrespreis', 'Betrag', 'Art'];
 
 export function kundeFromItem(i: SPItem): IKunde {
   return {
@@ -120,7 +120,7 @@ export function rechnungFromItem(i: SPItem): IRechnung {
     rechnungsdatum: fromSpDate(i.Rechnungsdatum),
     vorgaengerId: i.VorgaengerId || null,
     status: status(i.Status),
-    summeNettoCent: i.SummeNettoCent || 0,
+    summeNettoCent: toCent(i.SummeNetto),
     ustSatz: typeof i.UstSatz === 'number' ? i.UstSatz : null,
     pdfUrl: (i.PdfLink && i.PdfLink.Url) || null
   };
@@ -143,7 +143,7 @@ export function rechnungToItem(r: Omit<IRechnung, 'id' | 'pdfUrl'>): SPItem {
     Rechnungsdatum: toSpDate(r.rechnungsdatum),
     VorgaengerId: r.vorgaengerId,
     Status: r.status,
-    SummeNettoCent: r.summeNettoCent,
+    SummeNetto: r.summeNettoCent / 100,
     UstSatz: typeof r.ustSatz === 'number' ? r.ustSatz : null
   };
 }
@@ -160,8 +160,8 @@ export function rechnungspositionFromItem(i: SPItem): IRechnungsposition {
     bis: fromSpDate(i.Bis),
     monateX100: Math.round((i.Monate || 0) * 100),
     menge: i.Menge === null || i.Menge === undefined ? 1 : i.Menge,
-    einzelpreisCent: i.EinzelpreisCent || 0,
-    betragCent: i.BetragCent || 0,
+    einzelpreisCent: toCent(i.Jahrespreis),
+    betragCent: toCent(i.Betrag),
     art
   };
 }
@@ -175,8 +175,8 @@ export function rechnungspositionToItem(r: Omit<IRechnungsposition, 'id'>): SPIt
     Bis: toSpDate(r.bis),
     Monate: r.monateX100 / 100,
     Menge: r.menge,
-    EinzelpreisCent: r.einzelpreisCent,
-    BetragCent: r.betragCent,
+    Jahrespreis: r.einzelpreisCent / 100,
+    Betrag: r.betragCent / 100,
     Art: r.art
   };
 }

@@ -33,7 +33,7 @@ const PAGE_SIZE = 2000;
  * Liest alle Elemente seitenweise über die (immer indizierte) Id, damit auch
  * Listen über der 5.000er-Schwelle vollständig gelesen werden.
  */
-async function readAll(list: IList, fields: string[], filter?: string): Promise<SPItem[]> {
+export async function readAll(list: IList, fields: string[], filter?: string): Promise<SPItem[]> {
   const select = fields.indexOf('Id') >= 0 ? fields : fields.concat('Id');
   const result: SPItem[] = [];
   let lastId = 0;
