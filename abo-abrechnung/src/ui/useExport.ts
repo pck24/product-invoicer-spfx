@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ustSatzOf } from '../data/mapping';
-import { ExportNotConfiguredError, exportPdf, GraphAccessError } from '../export/pdfExport';
+import { ExportNotConfiguredError, exportPdf } from '../export/pdfExport';
 import { ExportVariante, IExportInput } from '../export/templateData';
 import { useApp } from './AppContext';
 import { errorText, IAppData, useData } from './DataContext';
@@ -52,17 +52,22 @@ export function useExport(): IExportRun {
           await repo.setPdfLink(input.rechnung.id, res.url, res.name);
           patchRechnung(input.rechnung.id, { pdfUrl: res.url });
         }
-        notify('Datei abgelegt', 'success', { text: res.name, url: res.url });
+        if (res.pdfFehler) {
+          notify(
+            res.pdfFehlerZugriff
+              ? 'PDF-Umwandlung nicht möglich: Microsoft Graph verweigert den Zugriff (API-Freigabe „Sites.ReadWrite.All“ im SharePoint Admin Center fehlt). Stattdessen wurde die Word-Datei abgelegt.'
+              : `PDF-Umwandlung fehlgeschlagen (${res.pdfFehler}). Stattdessen wurde die Word-Datei abgelegt. Details stehen in der Browser-Konsole (F12).`,
+            'warning',
+            { text: res.name, url: res.url }
+          );
+        } else {
+          notify('Datei abgelegt', 'success', { text: res.name, url: res.url });
+        }
         if (res.warnings.length) notify(`Unbekannte Platzhalter in der Vorlage (leer ersetzt): ${res.warnings.join(', ')}`, 'warning');
         return true;
       } catch (e) {
         if (e instanceof ExportNotConfiguredError) {
           notify('Export nicht eingerichtet: Word-Vorlage und Export-Ordner fehlen.', 'warning', { text: 'Einstellungen öffnen', onClick: openSettings });
-        } else if (e instanceof GraphAccessError) {
-          notify(
-            'Kein Zugriff auf Microsoft Graph für die PDF-Umwandlung. Die Berechtigung „Sites.ReadWrite.All“ muss einmalig im SharePoint Admin Center unter „API-Zugriff“ freigegeben werden – oder im Webpart „Word (.docx)“ als Ausgabeformat wählen.',
-            'error'
-          );
         } else {
           notify(`Export fehlgeschlagen: ${errorText(e)}`, 'error');
         }

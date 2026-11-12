@@ -22,7 +22,6 @@ import { kpis } from '../derive';
 import { rowClick } from '../rowClick';
 import { KpiCard } from '../components/KpiCard';
 import { KundeDrawer } from '../components/KundeDrawer';
-import { StatusBadge } from '../components/StatusBadge';
 import { useShared } from '../styles';
 
 const useStyles = makeStyles({
@@ -126,14 +125,13 @@ export function CustomerList({ tab, onTab, onOpen, rechnungen }: ICustomerListPr
                     <TableHeaderCell>Name</TableHeaderCell>
                     <TableHeaderCell>Aktive Positionen</TableHeaderCell>
                     <TableHeaderCell>Letzte Rechnung</TableHeaderCell>
-                    <TableHeaderCell>Status</TableHeaderCell>
                     <TableHeaderCell aria-label="Aktion" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className={shared.muted}>
+                      <TableCell colSpan={5} className={shared.muted}>
                         {summaries.length === 0 ? 'Noch keine Kunden angelegt.' : 'Keine Kunden gefunden.'}
                       </TableCell>
                     </TableRow>
@@ -150,9 +148,6 @@ export function CustomerList({ tab, onTab, onOpen, rechnungen }: ICustomerListPr
                       </TableCell>
                       <TableCell>
                         {x.letzteRechnung ? `${x.letzteRechnung.nummer} · ${formatDate(x.letzteRechnung.rechnungsdatum)}` : <span className={shared.muted}>–</span>}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge color={x.status.color} text={x.status.text} />
                       </TableCell>
                       <TableCell style={{ textAlign: 'right' }}>
                         <Link as="button" className={shared.strong} onClick={() => onOpen(x.kunde.id)}>

@@ -3,7 +3,7 @@
   "solution": {
     "name": "abo-abrechnung-client-side-solution",
     "id": "a9ee3f28-f61c-4e04-a995-c7ab656cc0cd",
-    "version": "1.0.0.0",
+    "version": "1.0.1.0",
     "includeClientSideAssets": true,
     "webApiPermissionRequests": [
       {
@@ -34,7 +34,7 @@
         "title": "abo-abrechnung Feature",
         "description": "The feature that activates elements of the abo-abrechnung solution.",
         "id": "4149df17-f452-42b8-b87e-61465f3b0994",
-        "version": "1.0.0.0"
+        "version": "1.0.1.0"
       }
     ]
   },
